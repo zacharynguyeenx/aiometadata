@@ -17,6 +17,7 @@ import {
   nativeOrigin,
   type BlueprintLookup,
 } from './catalogReconstruction';
+import { simklRouteId } from '../../utils/simklCatalogIdentity';
 
 export type { BlueprintLookup };
 
@@ -56,7 +57,10 @@ function toAddonSource(
     genre: orNull(source.genre),
   };
 
-  return attach(mapped, lookupKey(catalogId, source.type));
+  const lookupId = source.instanceId && catalogId.startsWith('simkl.')
+    ? simklRouteId(catalogId, source.instanceId)
+    : catalogId;
+  return attach(mapped, lookupKey(lookupId, source.type));
 }
 
 function toCatalogSource(source: NuvioAddonSource): NuvioCatalogSource {
