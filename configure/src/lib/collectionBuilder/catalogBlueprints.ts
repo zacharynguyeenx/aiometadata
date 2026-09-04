@@ -331,8 +331,8 @@ export function resolveCatalogAdditions(
 
       if (kept.length < MIN_MERGE_SOURCES) continue;
 
-      const parentKey = `${source.catalogId}:${parent.type}`;
-      resolved.add(`${source.catalogId}:${source.type}`);
+      const parentKey = catalogKey(source.catalogId, parent.type, source.instanceId);
+      resolved.add(parentKey);
       if (!take(parentKey)) continue;
 
       for (const child of staged) {
@@ -435,7 +435,7 @@ export function applyCatalogAdditions(
   const toEnable = new Set(additions.enabled);
   const toAbsorb = new Map(additions.absorbed.map(entry => [entry.key, entry.parentId]));
   const updated = existing.map(catalog => {
-    const key = `${catalog.id}:${catalog.type}`;
+    const key = catalogKey(catalog.id, catalog.type, catalog.instanceId);
     let next = toEnable.has(key) ? { ...catalog, enabled: true } : catalog;
     const parentId = toAbsorb.get(key);
     if (parentId) next = { ...next, mergedInto: parentId, showInHome: false };

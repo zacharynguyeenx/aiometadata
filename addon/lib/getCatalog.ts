@@ -3587,8 +3587,11 @@ async function getMergedCatalog(
     return { added, consumedPerSource };
   };
 
+  const sourcePageKey = (src: any): string =>
+    `${src.catalogId}:${src.catalogType}:${src.instanceId || 'canonical'}`;
+
   const markSourcePage = (src: any, resultLength: number): boolean => {
-    const key = `${src.catalogId}:${src.catalogType}:${src.instanceId || 'canonical'}`;
+    const key = sourcePageKey(src);
     const srcPage = perSourcePage.get(key)!;
     if (resultLength === 0) {
       perSourcePage.set(key, -1);
@@ -3606,7 +3609,7 @@ async function getMergedCatalog(
     while (collected.length < pageSize && activeSourceIdx < validSources.length && attempts < maxAttempts) {
       attempts++;
       const src = validSources[activeSourceIdx];
-      const key = `${src.catalogId}:${src.catalogType}`;
+      const key = sourcePageKey(src);
       const srcPage = perSourcePage.get(key)!;
 
       if (srcPage <= 0) {
@@ -3629,7 +3632,7 @@ async function getMergedCatalog(
     }
   } else if (mergeMode === 'alternating') {
     const liveCount = validSources.filter((_: any, i: number) => {
-      const k = `${validSources[i].catalogId}:${validSources[i].catalogType}`;
+      const k = sourcePageKey(validSources[i]);
       return perSourcePage.get(k)! > 0;
     }).length;
     let exhaustedCount = validSources.length - liveCount;
@@ -3639,7 +3642,7 @@ async function getMergedCatalog(
       attempts++;
       const srcIdx = activeSourceIdx % validSources.length;
       const src = validSources[srcIdx];
-      const key = `${src.catalogId}:${src.catalogType}`;
+      const key = sourcePageKey(src);
       const srcPage = perSourcePage.get(key)!;
 
       if (srcPage <= 0) {
@@ -3672,7 +3675,7 @@ async function getMergedCatalog(
 
       const results = await Promise.all(
         validSources.map(async (src: any) => {
-          const key = `${src.catalogId}:${src.catalogType}`;
+          const key = sourcePageKey(src);
           const srcPage = perSourcePage.get(key)!;
           if (srcPage <= 0) return { items: [], rawLength: 0 };
           return fetchSourcePage(src, srcPage);
@@ -3686,7 +3689,7 @@ async function getMergedCatalog(
       );
 
       for (let i = 0; i < validSources.length; i++) {
-        const key = `${validSources[i].catalogId}:${validSources[i].catalogType}`;
+        const key = sourcePageKey(validSources[i]);
         if (perSourcePage.get(key)! <= 0) continue;
         if (results[i].rawLength === 0) {
           if (markSourcePage(validSources[i], 0)) exhaustedCount++;
