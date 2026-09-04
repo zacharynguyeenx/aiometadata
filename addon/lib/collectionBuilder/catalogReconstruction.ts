@@ -7,6 +7,7 @@ import { isPrivateList, isUserSpecific } from './catalogSharing';
  */
 export interface CatalogBlueprint {
   id: string;
+  instanceId?: string;
   type: 'movie' | 'series' | 'anime' | 'all';
   name: string;
   source: string;
@@ -607,8 +608,8 @@ export function lookupKey(catalogId: unknown, type: unknown): string {
   return `${trimmed(catalogId)}:${trimmed(type).toLowerCase()}`;
 }
 
-export function blueprintKey(blueprint: { id: string; type: string }): string {
-  return lookupKey(blueprint.id, blueprint.type);
+export function blueprintKey(blueprint: { id: string; type: string; instanceId?: string }): string {
+  return `${lookupKey(blueprint.id, blueprint.type)}:${blueprint.instanceId || 'canonical'}`;
 }
 
 /**

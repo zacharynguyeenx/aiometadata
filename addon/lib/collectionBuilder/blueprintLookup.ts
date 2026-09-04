@@ -1,6 +1,7 @@
 import { buildShareableCatalog, type ShareableCatalog } from './catalogSharing';
 import { lookupKey, type CatalogBlueprint } from './catalogReconstruction';
 import type { BlueprintLookup } from './nuvioExport';
+import { simklRouteId } from '../../utils/simklCatalogIdentity';
 
 /**
  * How createCatalog addresses a catalog in the manifest: the type is always
@@ -10,8 +11,9 @@ import type { BlueprintLookup } from './nuvioExport';
  */
 function manifestKeys(catalog: ShareableCatalog): string[] {
   const type = String(catalog.displayType || '').trim() || catalog.type;
-  const keys = [lookupKey(catalog.id, type)];
-  if (catalog.displayType) keys.push(lookupKey(`${catalog.id}_${catalog.type}`, type));
+  const id = catalog.source === 'simkl' ? simklRouteId(catalog.id, catalog.instanceId) : catalog.id;
+  const keys = [lookupKey(id, type)];
+  if (catalog.displayType) keys.push(lookupKey(`${id}_${catalog.type}`, type));
   return keys;
 }
 
@@ -31,8 +33,9 @@ export function buildBlueprintLookup(catalogs: ShareableCatalog[] | undefined): 
     const shareable = buildShareableCatalog(catalog);
     if (!shareable) continue;
 
-    const blueprint = {
-      id: shareable.id,
+      const blueprint = {
+        id: shareable.id,
+        ...(shareable.instanceId && { instanceId: shareable.instanceId }),
       type: shareable.type,
       name: shareable.name,
       source: shareable.source,

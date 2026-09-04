@@ -25,6 +25,7 @@ export interface ManifestCatalog {
   pendingSave?: boolean;
   /** Profile tags from the user's config. The manifest does not carry these. */
   tags?: string[];
+  instanceId?: string;
 }
 
 export type CatalogListOrigin = 'manifest' | 'derived';
@@ -92,7 +93,7 @@ export function deriveManifestCatalog(catalog: CatalogConfig): ManifestCatalog {
     ? ['None', ...(catalog.genres || []).filter(genre => genre !== 'None')]
     : catalog.genres;
   return {
-    id,
+    id: catalog.source === 'simkl' ? `${catalog.id}${catalog.instanceId ? '__instance_' + catalog.instanceId : ''}` : id,
     type,
     baseType: catalog.type,
     name: catalog.name,
@@ -260,7 +261,12 @@ function genreOptions(entry: any): string[] | undefined {
  * same catalog.
  */
 export function catalogKey(catalog: { id?: string; catalogId?: string; type: string }): string {
-  return `${catalog.id ?? catalog.catalogId ?? ''}:${String(catalog.type ?? '').toLowerCase()}`;
+  const rawId = catalog.id ?? catalog.catalogId ?? '';
+  const marker = '__instance_';
+  const markerIndex = rawId.lastIndexOf(marker);
+  const providerId = markerIndex === -1 ? rawId : rawId.slice(0, markerIndex);
+  const instanceId = markerIndex === -1 ? undefined : rawId.slice(markerIndex + marker.length);
+  return `${providerId}:${String(catalog.type ?? '').toLowerCase()}:${instanceId || 'canonical'}`;
 }
 
 /** What the manifest says it will use anyway, so never a guess. */
@@ -271,12 +277,17 @@ function startingGenre(catalog: ManifestCatalog): string | null {
 
 /** The one way a picked catalog becomes a source, so every picker agrees. */
 export function sourceFromCatalog(catalog: ManifestCatalog): SourceDraft {
+  const marker = '__instance_';
+  const markerIndex = catalog.id.lastIndexOf(marker);
   return {
-    catalogId: catalog.id,
+    catalogId: markerIndex === -1 ? catalog.id : catalog.id.slice(0, markerIndex),
     type: catalog.type,
     name: catalog.name,
     genre: startingGenre(catalog),
     ...(catalog.baseType ? { baseType: catalog.baseType } : {}),
+    ...((catalog.instanceId || markerIndex !== -1) && {
+      instanceId: catalog.instanceId || catalog.id.slice(markerIndex + marker.length),
+    }),
   };
 }
 

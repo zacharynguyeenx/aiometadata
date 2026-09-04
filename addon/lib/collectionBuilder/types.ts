@@ -14,6 +14,7 @@ export interface SourceDraft {
   genre?: string | null;
   /** The catalog's own type, before a displayType renamed it. Neither target reads it. */
   baseType?: string;
+  instanceId?: string;
   /**
    * A source the client resolves against TMDB or Trakt itself: Nuvio checks
    * `provider`, Fusion checks `kind`. Kept verbatim, and see nativeOrigin.
