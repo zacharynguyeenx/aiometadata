@@ -608,8 +608,12 @@ export function lookupKey(catalogId: unknown, type: unknown): string {
   return `${trimmed(catalogId)}:${trimmed(type).toLowerCase()}`;
 }
 
+function blueprintLookupKey(catalogId: unknown, type: unknown, instanceId?: unknown): string {
+  return `${lookupKey(catalogId, type)}:${trimmed(instanceId) || 'canonical'}`;
+}
+
 export function blueprintKey(blueprint: { id: string; type: string; instanceId?: string }): string {
-  return `${lookupKey(blueprint.id, blueprint.type)}:${blueprint.instanceId || 'canonical'}`;
+  return blueprintLookupKey(blueprint.id, blueprint.type, blueprint.instanceId);
 }
 
 /**
@@ -644,7 +648,7 @@ export function createBlueprintWriter(lookup: BlueprintLookup) {
     const carried: CatalogBlueprint[] = [];
     for (const part of parts) {
       if (!isRecord(part)) continue;
-      const child = byOwnKey.get(lookupKey(part.catalogId, part.catalogType));
+      const child = byOwnKey.get(blueprintLookupKey(part.catalogId, part.catalogType, part.instanceId));
       if (!child) continue;
       const childId = blueprintKey(child);
       if (written.has(childId)) continue;
