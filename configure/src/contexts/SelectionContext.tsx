@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { CatalogConfig } from './config';
+import { catalogIdentityKey } from '@/lib/catalogIdentity';
 
 interface SelectionState {
   selectedIds: Set<string>;
@@ -47,7 +48,7 @@ export function SelectionProvider({ children, catalogs }: SelectionProviderProps
 
   // Helper to create unique catalog ID
   const getCatalogKey = useCallback((catalog: CatalogConfig) => {
-    return `${catalog.id}-${catalog.type}`;
+    return catalogIdentityKey(catalog);
   }, []);
 
   // Toggle selection for a single catalog

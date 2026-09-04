@@ -66,6 +66,7 @@ const {
 const { renderOAuthPage } = require('./lib/oauthPage');
 const { hasAnyWatchTrackingEnabled } = require('./lib/watchTracking');
 const { SimklClient } = require('./lib/simkl');
+const { simklRouteId } = require('./utils/simklCatalogIdentity');
 const {
   createSessionId,
   deleteDeviceAuthSession,
@@ -4422,7 +4423,7 @@ addon.get("/stremio/:userUUID/catalog/:type/:id{/:extra}.json", async function (
   // 1. Try to find the catalog config using the exact ID from the URL
   // This handles standard cases like "mal.top_series" correctly
   let catalogConfig = config.catalogs?.find(c =>
-    c.id === id && (c.type === type || c.displayType === type)
+    (c.id === id || simklRouteId(c.id, c.instanceId) === id) && (c.type === type || c.displayType === type)
   );
 
   let cleanId = id;
@@ -4504,6 +4505,13 @@ addon.get("/stremio/:userUUID/catalog/:type/:id{/:extra}.json", async function (
   // Claimed before the provider prefixes; anilist.discover would otherwise match anilist.
   if (isDiscoverCatalogId(cleanId)) {
     applyDiscoverSignature(extraArgs, catalogConfig);
+  }
+  // Simkl ordering and caps are applied after metadata enrichment, so they must
+  // participate in the catalogue response identity (random also changes daily).
+  else if (cleanId.startsWith('simkl.')) {
+    if (catalogConfig?.sort) extraArgs.simklSort = catalogConfig.sort;
+    if (catalogConfig?.metadata?.itemCount !== undefined) extraArgs.simklLimit = catalogConfig.metadata.itemCount;
+    if (catalogConfig?.sort === 'random') extraArgs.simklDay = new Date().toISOString().slice(0, 10);
   }
   // Trakt uses: sort, sortDirection
   else if (cleanId.startsWith('trakt.')) {
@@ -4909,6 +4917,10 @@ addon.get("/stremio/:userUUID/catalog/:type/:id{/:extra}.json", async function (
       );
     } else {
       responseData = await readPage(catalogPage, legacySkip);
+       if (cleanId.startsWith('simkl.') &&
+           (catalogConfig?.sort && catalogConfig.sort !== 'default' || catalogConfig?.metadata?.itemCount !== undefined)) {
+         filtersAlreadyApplied = true;
+       }
     }
     }
     if (!filtersAlreadyApplied && responseData?.metas && Array.isArray(responseData.metas) && responseData.metas.length > 0) {

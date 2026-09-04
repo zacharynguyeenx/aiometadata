@@ -115,6 +115,10 @@ dist
 *.save.*
 temp/
 
+# Local development files
+data
+docker-compose.local.yml
+
 # Built-in image cache (POSTER_CACHE_DIR default)
 addon/data/poster-cache/
 

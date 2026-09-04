@@ -87,6 +87,8 @@ export interface Catalog {
   showInHome: boolean;
   source?: string;
   randomizePerPage?: boolean;
+  sort?: string;
+  metadata?: { itemCount?: number; [key: string]: any };
   [key: string]: any;
 }
 

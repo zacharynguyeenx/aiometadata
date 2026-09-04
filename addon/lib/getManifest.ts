@@ -16,6 +16,7 @@ import { cacheWrapJikanApi, cacheWrapGlobal, cacheWrapStremThruGenres } from './
 import { mergeGenreOptions } from '../utils/mergedCatalog';
 import consola from 'consola';
 import { hasAnyWatchTrackingEnabled } from './watchTracking';
+import { simklRouteId } from '../utils/simklCatalogIdentity';
 const logger = consola.withTag('Manifest');
 
 
@@ -795,7 +796,7 @@ async function createSimklCatalog(userCatalog: any, showPrefix: boolean = false,
     }
 
     const catalog: any = {
-      id: userCatalog.id,
+      id: simklRouteId(userCatalog.id, userCatalog.instanceId),
       type: catalogType,
       name: `${showPrefix ? `${prefixName} - ` : ""}${userCatalog.name}`,
       pageSize: parseInt(process.env.CATALOG_LIST_ITEMS_SIZE as string) || 20,
