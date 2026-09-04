@@ -395,7 +395,7 @@ const MDBListSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogC
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ?
           {
             ...c,
@@ -718,7 +718,7 @@ const TraktSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogCon
     const hideUnreleasedShowsValue = hideUnreleasedShows === 'on' ? true : hideUnreleasedShows === 'off' ? false : undefined;
     setConfig(prev => {
       const updatedCatalogs = prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ? {
               ...c,
               sort,
@@ -986,7 +986,7 @@ const SimklSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogCon
       : undefined;
     setConfig(prev => {
       const updatedCatalogs = prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ? {
               ...c,
               sort,
@@ -1273,7 +1273,7 @@ const MovieLensSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: Catalo
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ? {
               ...c,
               cacheTTL: resolveCatalogTTL(cacheTTL, minCacheTTLFor(catalog.id)),
@@ -1496,7 +1496,7 @@ const LetterboxdSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: Catal
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ? { ...c, cacheTTL: resolveCatalogTTL(cacheTTL, minCacheTTLFor(catalog.id)), enableRatingPosters, metadata: { ...c.metadata, hideWatchedTrakt: hideTraktValue, hideWatchedAnilist: hideAnilistValue, hideWatchedMdblist: hideMdblistValue, hideWatchedSimkl: hideSimklValue, hideUnreleasedDigital: hideUnreleasedDigitalValue, hideUnreleasedShows: hideUnreleasedShowsValue } }
           : c
       )
@@ -1659,7 +1659,7 @@ const TMDBSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogConf
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ? { ...c, sort, sortDirection, ...(supportsMinVotes ? { minVotes } : {}), metadata: { ...c.metadata, hideWatchedTrakt: hideTraktValue, hideWatchedAnilist: hideAnilistValue, hideWatchedMdblist: hideMdblistValue, hideWatchedSimkl: hideSimklValue, hideUnreleasedDigital: hideUnreleasedDigitalValue, hideUnreleasedShows: hideUnreleasedShowsValue } }
           : c
       )
@@ -1840,7 +1840,7 @@ const CustomManifestSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: C
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ? { ...c, cacheTTL: resolveCatalogTTL(cacheTTL, minCacheTTLFor(catalog.id)), enableRatingPosters, metadata: { ...c.metadata, hideWatchedTrakt: hideTraktValue, hideWatchedAnilist: hideAnilistValue, hideWatchedMdblist: hideMdblistValue, hideWatchedSimkl: hideSimklValue, hideUnreleasedDigital: hideUnreleasedDigitalValue, hideUnreleasedShows: hideUnreleasedShowsValue } }
           : c
       )
@@ -1997,7 +1997,7 @@ const AniListSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogC
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ? { ...c, sort, sortDirection, cacheTTL: resolveCatalogTTL(cacheTTL, minCacheTTLFor(catalog.id)), metadata: { ...c.metadata, hideWatchedTrakt: hideTraktValue, hideWatchedAnilist: hideAnilistValue, hideWatchedMdblist: hideMdblistValue, hideWatchedSimkl: hideSimklValue, hideUnreleasedDigital: hideUnreleasedDigitalValue, hideUnreleasedShows: hideUnreleasedShowsValue } }
           : c
       )
@@ -2172,7 +2172,7 @@ const StreamingSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: Catalo
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ? { ...c, sort, sortDirection, metadata: { ...c.metadata, hideWatchedTrakt: hideTraktValue, hideWatchedAnilist: hideAnilistValue, hideWatchedMdblist: hideMdblistValue, hideWatchedSimkl: hideSimklValue, hideUnreleasedDigital: hideUnreleasedDigitalValue, hideUnreleasedShows: hideUnreleasedShowsValue } }
           : c
       )
@@ -2334,7 +2334,7 @@ const PMDBSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogConf
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ? { ...c, cacheTTL: resolveCatalogTTL(cacheTTL, minCacheTTL), metadata: { ...c.metadata, hideWatchedTrakt: hideTraktValue, hideWatchedAnilist: hideAnilistValue, hideWatchedMdblist: hideMdblistValue, hideWatchedSimkl: hideSimklValue, hideUnreleasedDigital: hideUnreleasedDigitalValue, hideUnreleasedShows: hideUnreleasedShowsValue } }
           : c
       )
@@ -2474,7 +2474,7 @@ const GenericSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogC
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        c.id === catalog.id && c.type === catalog.type
+        catalogIdentityKey(c) === catalogIdentityKey(catalog)
           ? { ...c, metadata: { ...c.metadata, hideWatchedTrakt: hideTraktValue, hideWatchedAnilist: hideAnilistValue, hideWatchedMdblist: hideMdblistValue, hideWatchedSimkl: hideSimklValue, hideUnreleasedDigital: hideUnreleasedDigitalValue, hideUnreleasedShows: hideUnreleasedShowsValue } }
           : c
       )

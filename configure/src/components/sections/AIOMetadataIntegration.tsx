@@ -8,6 +8,7 @@ import { Check, Plus, Minus, ChevronDown } from 'lucide-react';
 import { toast } from "sonner";
 import { baseCatalogs, animeCatalogs, CatalogDefinition } from '@/data/catalogs';
 import { cn } from '@/lib/utils';
+import { catalogIdentityKey } from '@/lib/catalogIdentity';
 
 interface AIOMetadataIntegrationProps {
   isOpen: boolean;
@@ -119,7 +120,7 @@ export function AIOMetadataIntegration({ isOpen, onClose }: AIOMetadataIntegrati
       setConfig(prev => ({
         ...prev,
         catalogs: prev.catalogs.filter(
-          c => !(c.id === catalog.id && c.type === catalog.type)
+          c => catalogIdentityKey(c) !== catalogIdentityKey(catalog)
         ),
       }));
       toast.success(`Removed ${catalog.name} (${typeLabel(catalog.type)})`);

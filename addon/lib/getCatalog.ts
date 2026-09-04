@@ -2563,7 +2563,7 @@ async function getMalUserListCatalog(
       return [];
     }
 
-    const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
+      const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
     const pageSize = parseInt(process.env.CATALOG_LIST_ITEMS_SIZE as string) || 20;
     const offset = (page - 1) * pageSize;
     const sort = catalogConfig?.sort || 'list_updated_at';
@@ -2945,7 +2945,7 @@ async function getSimklCatalog(
     logger.info(`[Simkl] Fetching catalog: ${catalogId}, Type: ${type}, Page: ${page}`);
     const { providerId } = splitSimklRouteId(catalogId);
     
-    const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
+    const catalogConfig = config.catalogs?.find(c => simklRouteId(c.id, c.instanceId) === catalogId);
     const simklSort = catalogConfig?.sort || 'default';
     const simklLimit = catalogConfig?.metadata?.itemCount;
     const simklPageSize = parseInt(process.env.CATALOG_LIST_ITEMS_SIZE || '20', 10);
@@ -3432,6 +3432,7 @@ async function getMergedCatalog(
     }
     const stillExists = config.catalogs?.some((c: any) =>
       c.id === s.catalogId && c.type === s.catalogType
+        && (c.instanceId || 'canonical') === (s.instanceId || 'canonical')
     );
     if (!stillExists) {
       logger.warn(`[Merged] Source ${s.catalogId} (${s.catalogType}) no longer exists in config`);
@@ -3451,7 +3452,7 @@ async function getMergedCatalog(
 
   interface MergedCursor {
     served: number;
-    perSource: { catalogId: string; catalogType: string; nextPage: number }[];
+    perSource: { catalogId: string; catalogType: string; instanceId?: string; nextPage: number }[];
     seenIds: string[];
     activeSourceIdx?: number;
   }
@@ -3462,20 +3463,20 @@ async function getMergedCatalog(
 
   if (stremioSkip === 0) {
     if (cursorKey) await redis!.del(cursorKey);
-    perSourcePage = new Map(validSources.map((s: any) => [`${s.catalogId}:${s.catalogType}`, 1]));
+    perSourcePage = new Map(validSources.map((s: any) => [`${s.catalogId}:${s.catalogType}:${s.instanceId || 'canonical'}`, 1]));
   } else if (cursorKey) {
     const raw = await redis!.get(cursorKey);
     if (raw) {
       cursor = JSON.parse(raw);
       perSourcePage = new Map(
-        cursor!.perSource.map((s) => [`${s.catalogId}:${s.catalogType}`, s.nextPage])
+        cursor!.perSource.map((s) => [`${s.catalogId}:${s.catalogType}:${s.instanceId || 'canonical'}`, s.nextPage])
       );
       activeSourceIdx = cursor!.activeSourceIdx ?? 0;
     } else {
-      perSourcePage = new Map(validSources.map((s: any) => [`${s.catalogId}:${s.catalogType}`, 1]));
+      perSourcePage = new Map(validSources.map((s: any) => [`${s.catalogId}:${s.catalogType}:${s.instanceId || 'canonical'}`, 1]));
     }
   } else {
-    perSourcePage = new Map(validSources.map((s: any) => [`${s.catalogId}:${s.catalogType}`, 1]));
+    perSourcePage = new Map(validSources.map((s: any) => [`${s.catalogId}:${s.catalogType}:${s.instanceId || 'canonical'}`, 1]));
   }
 
   const seenIds = new Set<string>(cursor?.seenIds || []);
@@ -3521,11 +3522,12 @@ async function getMergedCatalog(
     try {
       const effectiveGenre = genre || await resolveDefaultGenre(src.catalogId, src.catalogType) || '';
       const cacheArgs = buildCatalogCacheArgs(src.catalogId, src.catalogType, srcPage, effectiveGenre, config);
-      const catalogKey = `${src.catalogId}:${src.catalogType}:${stableStringify(cacheArgs)}`;
+      const routeId = simklRouteId(src.catalogId, src.instanceId);
+      const catalogKey = `${routeId}:${src.catalogType}:${stableStringify(cacheArgs)}`;
 
       const result = await cacheWrapCatalog(userUUID, catalogKey, async () => {
         return await getCatalog(
-          src.catalogType, language, srcPage, src.catalogId, effectiveGenre, config, userUUID, includeVideos
+          src.catalogType, language, srcPage, routeId, effectiveGenre, config, userUUID, includeVideos
         );
       }, { config });
 
@@ -3584,7 +3586,7 @@ async function getMergedCatalog(
   };
 
   const markSourcePage = (src: any, resultLength: number): boolean => {
-    const key = `${src.catalogId}:${src.catalogType}`;
+    const key = `${src.catalogId}:${src.catalogType}:${src.instanceId || 'canonical'}`;
     const srcPage = perSourcePage.get(key)!;
     if (resultLength === 0) {
       perSourcePage.set(key, -1);
@@ -3693,7 +3695,7 @@ async function getMergedCatalog(
 
       if (added === 0 && results.some(r => r.items.length > 0)) {
         for (let i = 0; i < validSources.length; i++) {
-          const key = `${validSources[i].catalogId}:${validSources[i].catalogType}`;
+          const key = `${validSources[i].catalogId}:${validSources[i].catalogType}:${validSources[i].instanceId || 'canonical'}`;
           if (perSourcePage.get(key)! > 0 && results[i].items.length > 0) {
             markSourcePage(validSources[i], 0);
             exhaustedCount++;
@@ -3710,7 +3712,8 @@ async function getMergedCatalog(
       perSource: validSources.map((s: any) => ({
         catalogId: s.catalogId,
         catalogType: s.catalogType,
-        nextPage: perSourcePage.get(`${s.catalogId}:${s.catalogType}`) || -1,
+        ...(s.instanceId && { instanceId: s.instanceId }),
+        nextPage: perSourcePage.get(`${s.catalogId}:${s.catalogType}:${s.instanceId || 'canonical'}`) || -1,
       })),
       seenIds: [...seenIds],
       activeSourceIdx,

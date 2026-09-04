@@ -94,7 +94,11 @@ export function sanitizeMetadata(
     // merge, which means nothing to anyone importing it.
     safe.mergedSources = safe.mergedSources
       .filter((entry: any) => entry?.catalogId && !isUserSpecific(String(entry.catalogId)))
-      .map((entry: any) => ({ catalogId: entry.catalogId, catalogType: entry.catalogType }));
+      .map((entry: any) => ({
+        catalogId: entry.catalogId,
+        catalogType: entry.catalogType,
+        ...(entry.instanceId && { instanceId: entry.instanceId }),
+      }));
     if (safe.mergedSources.length === 0) delete safe.mergedSources;
   }
 

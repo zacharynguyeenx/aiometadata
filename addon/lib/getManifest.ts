@@ -901,14 +901,14 @@ async function getManifest(config: any, opts: { tags?: string[] } = {}): Promise
   for (const c of enabledCatalogs) {
     if (!c.id.startsWith('merged.')) continue;
     for (const s of (c.metadata?.mergedSources || [])) {
-      mergedSourceKeys.add(`${s.catalogId}:${s.catalogType}`);
+      mergedSourceKeys.add(`${s.catalogId}:${s.catalogType}:${s.instanceId || 'canonical'}`);
     }
   }
-  const enabledKeys = new Set(enabledCatalogs.map((c: any) => `${c.id}:${c.type}`));
+  const enabledKeys = new Set(enabledCatalogs.map((c: any) => `${c.id}:${c.type}:${c.instanceId || 'canonical'}`));
   const absorbedSourceCatalogs = userCatalogs.filter((c: any) =>
-    mergedSourceKeys.has(`${c.id}:${c.type}`) && !enabledKeys.has(`${c.id}:${c.type}`)
+    mergedSourceKeys.has(`${c.id}:${c.type}:${c.instanceId || 'canonical'}`) && !enabledKeys.has(`${c.id}:${c.type}:${c.instanceId || 'canonical'}`)
   );
-  const absorbedKeys = new Set<string>(absorbedSourceCatalogs.map((c: any) => `${c.id}:${c.type}`));
+  const absorbedKeys = new Set<string>(absorbedSourceCatalogs.map((c: any) => `${c.id}:${c.type}:${c.instanceId || 'canonical'}`));
 
   logger.info(`Total catalogs: ${userCatalogs.length}, Enabled: ${enabledCatalogs.length}`);
   logger.debug(`MDBList catalogs in enabled:`, enabledCatalogs.filter((c: any) => c.id.startsWith('mdblist.')).map((c: any) => c.id));
@@ -1363,7 +1363,7 @@ async function getManifest(config: any, opts: { tags?: string[] } = {}): Promise
 
   const seen = new Set<string>();
   catalogs = catalogs.filter(cat => {
-    const key = `${cat.id}:${cat.type}`;
+    const key = `${cat.id}:${cat.type}:${cat.instanceId || 'canonical'}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -1403,10 +1403,9 @@ async function getManifest(config: any, opts: { tags?: string[] } = {}): Promise
   if (absorbedKeys.size > 0) {
     catalogs = catalogs.filter((c: any) => {
       for (const key of absorbedKeys) {
-        const sep = key.lastIndexOf(':');
-        const sid = key.slice(0, sep);
-        const stype = key.slice(sep + 1);
-        if ((c.id === sid && c.type === stype) || c.id === `${sid}_${stype}`) return false;
+        const [sid, stype, instanceId] = key.split(':');
+        if (c.id === sid && c.type === stype && (c.instanceId || 'canonical') === instanceId) return false;
+        if (instanceId === 'canonical' && c.id === `${sid}_${stype}`) return false;
       }
       return true;
     });

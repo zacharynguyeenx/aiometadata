@@ -207,6 +207,7 @@ export function additionCount(additions: CatalogAdditions): number {
 interface MergeChild {
   catalogId: string;
   catalogType: string;
+  instanceId?: string;
 }
 
 /** A merge needs at least two sources; the app dissolves anything smaller. */
@@ -319,7 +320,7 @@ export function resolveCatalogAdditions(
       for (const child of children) {
         const outcome = resolveChild(child);
         if (!outcome) { dropped += 1; continue; }
-        kept.push({ catalogId: child.catalogId, catalogType: child.catalogType });
+        kept.push({ catalogId: child.catalogId, catalogType: child.catalogType, ...(child.instanceId && { instanceId: child.instanceId }) });
         if (outcome !== 'existing') staged.push(outcome);
       }
 
@@ -350,6 +351,7 @@ export function resolveCatalogAdditions(
             catalogType: child.catalogType,
             originalEnabled: true,
             originalShowInHome: false,
+            ...(child.instanceId && { instanceId: child.instanceId }),
           })),
         },
       });
