@@ -3,6 +3,7 @@ import { useConfig } from '@/contexts/ConfigContext';
 import { applyDisconnectRemovals, persistIntegrationCredential } from '@/lib/integrationCredentials';
 import { useSave } from '@/contexts/SaveContext';
 import { CatalogConfig } from '@/contexts/config';
+import { newCatalogInstanceId } from '@/lib/catalogIdentity';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -184,14 +185,12 @@ export function SimklIntegration({ isOpen, onClose }: SimklIntegrationProps) {
   // Handlers to add trending catalogs
   const handleAddTrendingCatalog = (type: 'movies' | 'shows' | 'anime') => {
     const id = `simkl.trending.${type}`;
-    if (config.catalogs.some(c => c.id === id)) {
-      toast.info(`Trending ${type} catalog already added.`);
-      return;
-    }
+    const instanceId = config.catalogs.some(c => c.id === id) ? newCatalogInstanceId(config.catalogs) : undefined;
     const catalogType = type === 'movies' ? 'movie' : type === 'anime' ? 'anime' : 'series';
     const displayType = getDisplayTypeOverride(catalogType, config.displayTypeOverrides);
     const newCatalog: CatalogConfig = {
       id,
+      ...(instanceId && { instanceId }),
       type: catalogType,
       name: `Simkl Trending ${type.charAt(0).toUpperCase() + type.slice(1)}`,
       enabled: true,
@@ -206,13 +205,11 @@ export function SimklIntegration({ isOpen, onClose }: SimklIntegrationProps) {
 
   const handleAddDvdReleasesCatalog = () => {
     const id = 'simkl.dvd.movies';
-    if (config.catalogs.some(c => c.id === id)) {
-      toast.info('Simkl DVD Releases catalog already added.');
-      return;
-    }
+    const instanceId = config.catalogs.some(c => c.id === id) ? newCatalogInstanceId(config.catalogs) : undefined;
     const displayType = getDisplayTypeOverride('movie', config.displayTypeOverrides);
     const newCatalog: CatalogConfig = {
       id,
+      ...(instanceId && { instanceId }),
       type: 'movie',
       name: 'Simkl DVD Releases',
       enabled: true,
@@ -226,14 +223,12 @@ export function SimklIntegration({ isOpen, onClose }: SimklIntegrationProps) {
 
   const handleAddRecipeCatalog = (recipe: string, type: 'movies' | 'shows' | 'anime', label: string) => {
     const id = `simkl.recipe.${recipe}.${type}`;
-    if (config.catalogs.some(c => c.id === id)) {
-      toast.info(`${label} catalog already added.`);
-      return;
-    }
+    const instanceId = config.catalogs.some(c => c.id === id) ? newCatalogInstanceId(config.catalogs) : undefined;
     const catalogType = type === 'movies' ? 'movie' : type === 'anime' ? 'anime' : 'series';
     const displayType = getDisplayTypeOverride(catalogType, config.displayTypeOverrides);
     const newCatalog: CatalogConfig = {
       id,
+      ...(instanceId && { instanceId }),
       type: catalogType,
       name: `Simkl ${label}`,
       enabled: true,
@@ -249,10 +244,7 @@ export function SimklIntegration({ isOpen, onClose }: SimklIntegrationProps) {
   // Handlers to add watchlist catalogs
   const handleAddWatchlistCatalog = (type: 'movies' | 'shows' | 'anime', status: 'watching' | 'plantowatch' | 'hold' | 'completed' | 'dropped') => {
     const id = `simkl.watchlist.${type}.${status}`;
-    if (config.catalogs.some(c => c.id === id)) {
-      toast.info(`Watchlist ${type} ${status} catalog already added.`);
-      return;
-    }
+    const instanceId = config.catalogs.some(c => c.id === id) ? newCatalogInstanceId(config.catalogs) : undefined;
     const catalogType = type === 'movies' ? 'movie' : type === 'anime' ? 'anime' : 'series';
     const displayType = getDisplayTypeOverride(catalogType, config.displayTypeOverrides);
     const statusDisplayNames: Record<string, string> = {
@@ -264,6 +256,7 @@ export function SimklIntegration({ isOpen, onClose }: SimklIntegrationProps) {
     };
     const newCatalog: CatalogConfig = {
       id,
+      ...(instanceId && { instanceId }),
       type: catalogType,
       name: `Simkl ${statusDisplayNames[status]} ${type.charAt(0).toUpperCase() + type.slice(1)}`,
       enabled: true,
@@ -282,9 +275,11 @@ export function SimklIntegration({ isOpen, onClose }: SimklIntegrationProps) {
       return;
     }
     setConfig(prev => {
+      const instanceId = prev.catalogs.some(c => c.id === 'simkl.upnext') ? newCatalogInstanceId(prev.catalogs) : undefined;
       const displayType = getDisplayTypeOverride('series', prev.displayTypeOverrides);
       const newCatalog: CatalogConfig = {
         id: 'simkl.upnext',
+        ...(instanceId && { instanceId }),
         type: 'series',
         name: 'Simkl Up Next',
         enabled: true,
@@ -313,9 +308,11 @@ export function SimklIntegration({ isOpen, onClose }: SimklIntegrationProps) {
       return;
     }
     setConfig(prev => {
+      const instanceId = prev.catalogs.some(c => c.id === 'simkl.upnext.anime') ? newCatalogInstanceId(prev.catalogs) : undefined;
       const displayType = getDisplayTypeOverride('anime', prev.displayTypeOverrides);
       const newCatalog: CatalogConfig = {
         id: 'simkl.upnext.anime',
+        ...(instanceId && { instanceId }),
         type: 'anime',
         name: 'Simkl Anime Up Next',
         enabled: true,

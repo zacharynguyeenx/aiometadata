@@ -66,6 +66,7 @@ const {
 const { renderOAuthPage } = require('./lib/oauthPage');
 const { hasAnyWatchTrackingEnabled } = require('./lib/watchTracking');
 const { SimklClient } = require('./lib/simkl');
+const { simklRouteId } = require('./utils/simklCatalogIdentity');
 const {
   createSessionId,
   deleteDeviceAuthSession,
@@ -4422,7 +4423,7 @@ addon.get("/stremio/:userUUID/catalog/:type/:id{/:extra}.json", async function (
   // 1. Try to find the catalog config using the exact ID from the URL
   // This handles standard cases like "mal.top_series" correctly
   let catalogConfig = config.catalogs?.find(c =>
-    c.id === id && (c.type === type || c.displayType === type)
+    (c.id === id || simklRouteId(c.id, c.instanceId) === id) && (c.type === type || c.displayType === type)
   );
 
   let cleanId = id;

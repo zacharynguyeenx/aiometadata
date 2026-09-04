@@ -5,6 +5,7 @@ import { allCatalogDefinitions, allSearchProviders } from "@/data/catalogs";
 import { LoadingScreen } from "@/components/LoadingScreen"; 
 import { hasAnyWatchTrackingEnabled } from '@/lib/watchTracking';
 import { reconcileTagRegistry } from '@/lib/catalogShare';
+import { catalogIdentityKey, newCatalogInstanceId } from '@/lib/catalogIdentity';
 
 interface AuthState {
   authenticated: boolean;
@@ -109,6 +110,22 @@ function initializeConfigFromSources(): AppConfig | null {
 
   initialConfigFromSources = loadedConfig;
   return initialConfigFromSources;
+}
+
+function normalizeCatalogInstances(catalogs: CatalogConfig[]): CatalogConfig[] {
+  const seen = new Set<string>();
+  return catalogs.map(catalog => {
+    const key = `${catalog.id}-${catalog.type}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      return catalog;
+    }
+    const instanceId = catalog.instanceId && !catalogs.some(other => other !== catalog && other.instanceId === catalog.instanceId)
+      ? catalog.instanceId
+      : newCatalogInstanceId(catalogs);
+    seen.add(catalogIdentityKey({ ...catalog, instanceId }));
+    return { ...catalog, instanceId };
+  });
 }
 
 
@@ -390,7 +407,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         mal: { ...initialConfig.mal, ...preloadedConfig.mal },
         tmdb: { ...initialConfig.tmdb, ...preloadedConfig.tmdb },
         tags: hydratedTags.tags,
-        catalogs: hydratedTags.catalogs,
+        catalogs: normalizeCatalogInstances(hydratedTags.catalogs),
       };
     }
     return initialConfig;

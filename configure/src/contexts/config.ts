@@ -17,6 +17,8 @@ export interface TagDef {
 
 export interface CatalogConfig {
   id: string;
+  /** Immutable identity for configured copies; absent is the canonical legacy instance. */
+  instanceId?: string;
   name: string;
   type: 'movie' | 'series' | 'anime' | 'all';
   enabled: boolean;

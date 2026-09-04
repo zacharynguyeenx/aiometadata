@@ -1,5 +1,6 @@
 
 import { CatalogConfig, TagDef } from '@/contexts/config';
+import { catalogIdentityKey, newCatalogInstanceId } from '@/lib/catalogIdentity';
 import { TAG_COLOR_KEYS, nextTagColor } from '@/lib/tagColors';
 import {
   buildShareableCatalog,
@@ -213,13 +214,31 @@ export function mergeCatalogs(
   imported: CatalogConfig[],
   mode: 'merge' | 'replace'
 ): CatalogConfig[] {
+  const occupiedInstanceIds = new Set(existing.map(c => c.instanceId).filter(Boolean));
+  const importedWithSafeIdentities = imported.map(catalog => {
+    if (!catalog.instanceId || !occupiedInstanceIds.has(catalog.instanceId)) {
+      if (catalog.instanceId) occupiedInstanceIds.add(catalog.instanceId);
+      return catalog;
+    }
+
+    // An explicit imported identity is local to its source configuration. Keep the
+    // imported settings, but make it a new local instance instead of overwriting.
+    const instanceId = newCatalogInstanceId([
+      ...existing,
+      ...imported,
+      ...Array.from(occupiedInstanceIds, id => ({ instanceId: id } as CatalogConfig)),
+    ]);
+    occupiedInstanceIds.add(instanceId);
+    return { ...catalog, instanceId };
+  });
+
   if (mode === 'replace') {
     // Use imported order completely, append any existing catalogs not in import
-    const importedKeys = new Set(imported.map(c => `${c.id}-${c.type}`));
-    const keptExisting = existing.filter(c => !importedKeys.has(`${c.id}-${c.type}`));
+    const importedKeys = new Set(importedWithSafeIdentities.map(catalogIdentityKey));
+    const keptExisting = existing.filter(c => !importedKeys.has(catalogIdentityKey(c)));
 
-    const merged = imported.map(imp => {
-      const match = existing.find(e => e.id === imp.id && e.type === imp.type);
+    const merged = importedWithSafeIdentities.map(imp => {
+       const match = existing.find(e => catalogIdentityKey(e) === catalogIdentityKey(imp));
       // Preserve any extra runtime fields from existing, but imported values win
       return { ...(match || {}), ...imp } as CatalogConfig;
     });
@@ -229,12 +248,12 @@ export function mergeCatalogs(
 
   // Merge: keep existing order, update settings for matches, append new catalogs at end
   const result = [...existing];
-  const existingKeys = new Set(existing.map(c => `${c.id}-${c.type}`));
+  const existingKeys = new Set(existing.map(catalogIdentityKey));
 
-  for (const imp of imported) {
-    const key = `${imp.id}-${imp.type}`;
+  for (const imp of importedWithSafeIdentities) {
+    const key = catalogIdentityKey(imp);
     if (existingKeys.has(key)) {
-      const idx = result.findIndex(c => `${c.id}-${c.type}` === key);
+      const idx = result.findIndex(c => catalogIdentityKey(c) === key);
       if (idx !== -1) {
         result[idx] = { ...result[idx], ...imp };
       }

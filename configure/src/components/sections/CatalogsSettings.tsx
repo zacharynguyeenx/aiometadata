@@ -66,6 +66,7 @@ import {
 } from '@/utils/toastHelpers';
 import { toast } from 'sonner';
 import { buildExportPayload, exportToJson, parseImportJson, fetchAndParseUrl, mergeCatalogs, reconcileTagRegistry, ImportResult } from '@/lib/catalogShare';
+import { catalogIdentityKey, duplicateCatalogName, newCatalogInstanceId } from '@/lib/catalogIdentity';
 
 interface CustomizeTemplate {
   source: 'tmdb' | 'tvdb' | 'anilist' | 'simkl' | 'mal';
@@ -2597,11 +2598,11 @@ const MergedCatalogCard = ({
 }) => {
   const { setConfig, config } = useConfig();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: `${catalog.id}-${catalog.type}`,
+    id: catalogIdentityKey(catalog),
   });
   const { toggleSelection, isSelected, selectionCount } = useSelection();
-  const catalogKey = `${catalog.id}-${catalog.type}`;
-  const selected = isSelected(catalogKey);
+  const rowKey = catalogIdentityKey(catalog);
+  const selected = isSelected(rowKey);
 
   const sources = catalog.metadata?.mergedSources || [];
   const sourceCatalogs = sources
@@ -2625,7 +2626,7 @@ const MergedCatalogCard = ({
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        (c.id === catalog.id && c.type === catalog.type) ? updater(c) : c
+        (catalogIdentityKey(c) === catalogIdentityKey(catalog)) ? updater(c) : c
       ),
     }));
   };
@@ -2668,7 +2669,7 @@ const MergedCatalogCard = ({
 
   const handleMoveToTop = () => {
     setConfig(prev => {
-      const idx = prev.catalogs.findIndex(c => c.id === catalog.id && c.type === catalog.type);
+       const idx = prev.catalogs.findIndex(c => catalogIdentityKey(c) === catalogIdentityKey(catalog));
       if (idx <= 0) return prev;
       const next = [...prev.catalogs];
       const [moved] = next.splice(idx, 1);
@@ -2679,7 +2680,7 @@ const MergedCatalogCard = ({
 
   const handleMoveToBottom = () => {
     setConfig(prev => {
-      const idx = prev.catalogs.findIndex(c => c.id === catalog.id && c.type === catalog.type);
+       const idx = prev.catalogs.findIndex(c => catalogIdentityKey(c) === catalogIdentityKey(catalog));
       if (idx === -1 || idx === prev.catalogs.length - 1) return prev;
       const next = [...prev.catalogs];
       const [moved] = next.splice(idx, 1);
@@ -2717,7 +2718,7 @@ const MergedCatalogCard = ({
         {/* Row 1: Catalog info (checkbox, drag, name) */}
         <div className="flex items-start md:items-center space-x-2 sm:space-x-4 w-full md:w-auto">
         <div
-          onClick={(e) => { e.stopPropagation(); toggleSelection(catalogKey); }}
+           onClick={(e) => { e.stopPropagation(); toggleSelection(rowKey); }}
           className="cursor-pointer p-2 -ml-2 min-w-[36px] min-h-[36px] md:min-w-0 md:min-h-0 flex items-center pt-1 md:pt-0"
           role="checkbox"
           aria-checked={selected}
@@ -3026,7 +3027,7 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
   const { setConfig, config } = useConfig();
   const { toggleSelection, isSelected, selectionCount } = useSelection();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: `${catalog.id}-${catalog.type}`
+    id: catalogIdentityKey(catalog)
   });
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [newName, setNewName] = useState(catalog.name);
@@ -3041,8 +3042,8 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
   const [disbandTargetName, setDisbandTargetName] = useState('');
   const [deleteUsage, setDeleteUsage] = useState<CollectionUsage | null>(null);
 
-  const catalogKey = `${catalog.id}-${catalog.type}`;
-  const selected = isSelected(catalogKey);
+  const rowKey = catalogIdentityKey(catalog);
+  const selected = isSelected(rowKey);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -3055,14 +3056,14 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleSelection(catalogKey);
+    toggleSelection(rowKey);
   };
 
   const handleToggleEnabled = () => {
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c => {
-        if (c.id === catalog.id && c.type === catalog.type) {
+        if (catalogIdentityKey(c) === rowKey) {
           const isNowEnabled = !c.enabled;
           return { ...c, enabled: isNowEnabled, showInHome: isNowEnabled ? c.showInHome : false };
         }
@@ -3076,7 +3077,7 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        (c.id === catalog.id && c.type === catalog.type) ? { ...c, showInHome: !c.showInHome } : c
+        catalogIdentityKey(c) === rowKey ? { ...c, showInHome: !c.showInHome } : c
       )
     }));
   };
@@ -3085,7 +3086,7 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        (c.id === catalog.id && c.type === catalog.type) 
+        catalogIdentityKey(c) === rowKey
           ? { ...c, enableRatingPosters: c.enableRatingPosters === false ? true : false } 
           : c
       )
@@ -3096,7 +3097,7 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        (c.id === catalog.id && c.type === catalog.type)
+        catalogIdentityKey(c) === rowKey
           ? { ...c, randomizePerPage: !c.randomizePerPage }
           : c
       )
@@ -3118,7 +3119,7 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
     setConfig(prev => ({
       ...prev,
       catalogs: prev.catalogs.map(c =>
-        (c.id === catalog.id && c.type === catalog.type)
+        catalogIdentityKey(c) === rowKey
           ? {
               ...c,
               name: trimmedName,
@@ -3201,7 +3202,7 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
         return rest;
       });
 
-      next = next.filter(c => !(c.id === catalog.id && c.type === catalog.type));
+      next = next.filter(c => catalogIdentityKey(c) !== rowKey);
 
       return { ...prev, catalogs: reconcileMergedReferences(next) };
     });
@@ -3224,7 +3225,7 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
 
   const handleMoveToTop = () => {
     setConfig(prev => {
-      const currentIndex = prev.catalogs.findIndex(c => c.id === catalog.id && c.type === catalog.type);
+      const currentIndex = prev.catalogs.findIndex(c => catalogIdentityKey(c) === rowKey);
       if (currentIndex <= 0) return prev; // Already at top or not found
 
       const newCatalogs = [...prev.catalogs];
@@ -3240,7 +3241,7 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
 
   const handleMoveToBottom = () => {
     setConfig(prev => {
-      const currentIndex = prev.catalogs.findIndex(c => c.id === catalog.id && c.type === catalog.type);
+      const currentIndex = prev.catalogs.findIndex(c => catalogIdentityKey(c) === rowKey);
       if (currentIndex === -1 || currentIndex === prev.catalogs.length - 1) return prev; // Not found or already at bottom
 
       const newCatalogs = [...prev.catalogs];
@@ -3260,7 +3261,7 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
     !!(config.apiKeys?.traktTokenId || config.apiKeys?.anilistTokenId || config.apiKeys?.mdblist);
   const isDiscover = catalog.id.includes('.discover.') && !!catalog.metadata?.discover?.formState;
   const isMovieLensExplore = catalog.source === 'movielens' && catalog.id.startsWith('movielens.explore');
-  const canDuplicate = isDiscover || isMovieLensExplore;
+  const canDuplicate = isDiscover || isMovieLensExplore || catalog.source === 'simkl';
   const canDelete = true;
 
   return (
@@ -4106,6 +4107,23 @@ function CatalogsSettingsContent({
   }, []);
 
   const handleDuplicateDiscover = useCallback((catalog: CatalogConfig) => {
+    if (catalog.source === 'simkl') {
+      setConfig(prev => {
+        const instanceId = newCatalogInstanceId(prev.catalogs);
+        const newCatalog: CatalogConfig = {
+          ...catalog,
+          instanceId,
+          name: duplicateCatalogName(catalog, prev.catalogs),
+          metadata: catalog.metadata ? { ...catalog.metadata } : undefined,
+        };
+         const idx = prev.catalogs.findIndex(c => catalogIdentityKey(c) === catalogIdentityKey(catalog));
+        const catalogs = [...prev.catalogs];
+        catalogs.splice(idx === -1 ? catalogs.length : idx + 1, 0, newCatalog);
+        return { ...prev, catalogs };
+      });
+      toast.success('Catalog duplicated');
+      return;
+    }
     const sanitizedName = (catalog.name + ' (Copy)')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '_')
@@ -4140,7 +4158,7 @@ function CatalogsSettingsContent({
     };
 
     setConfig(prev => {
-      const idx = prev.catalogs.findIndex(c => c.id === catalog.id && c.type === catalog.type);
+       const idx = prev.catalogs.findIndex(c => catalogIdentityKey(c) === catalogIdentityKey(catalog));
       const catalogs = [...prev.catalogs];
       catalogs.splice(idx === -1 ? catalogs.length : idx + 1, 0, newCatalog);
       return { ...prev, catalogs };
@@ -4231,7 +4249,7 @@ function CatalogsSettingsContent({
   
     setConfig(prev => {
       const currentCatalogs = [...prev.catalogs];
-      const getCatalogKey = (catalog: CatalogConfig) => `${catalog.id}-${catalog.type}`;
+      const getCatalogKey = catalogIdentityKey;
       
       const movingKeys = selectedIds.has(activeKey)
         ? currentCatalogs
@@ -4264,7 +4282,7 @@ function CatalogsSettingsContent({
   };
 
   const catalogItemIds = useMemo(
-    () => filteredCatalogs.map(c => `${c.id}-${c.type}`),
+    () => filteredCatalogs.map(catalogIdentityKey),
     [filteredCatalogs]
   );
 
