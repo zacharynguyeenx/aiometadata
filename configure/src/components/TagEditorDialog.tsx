@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useConfig } from '@/contexts/ConfigContext';
 import { useCatalogTags } from '@/hooks/useCatalogTags';
+import { catalogIdentityKey } from '@/lib/catalogIdentity';
 import { TAG_COLORS, TAG_COLOR_KEYS, nextTagColor } from '@/lib/tagColors';
 import { TagChip } from '@/components/TagChip';
 import { MAX_TAG_NAME_LENGTH, type TagColorKey } from '@/contexts/config';
@@ -39,7 +40,7 @@ export function TagEditorDialog({ open, onOpenChange, targetKeys, title }: TagEd
   const tagState = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const c of config.catalogs) {
-      if (!targetKeys.has(`${c.id}-${c.type}`)) continue;
+      if (!targetKeys.has(catalogIdentityKey(c))) continue;
       for (const t of c.tags ?? []) counts[t] = (counts[t] || 0) + 1;
     }
     return counts;

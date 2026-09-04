@@ -6,6 +6,7 @@ import { TagChip } from '@/components/TagChip';
 import { TagEditorDialog } from '@/components/TagEditorDialog';
 import { cn } from '@/lib/utils';
 import type { CatalogConfig } from '@/contexts/config';
+import { catalogIdentityKey } from '@/lib/catalogIdentity';
 
 type CatalogTagRowMode = 'all' | 'chips' | 'button';
 
@@ -28,7 +29,7 @@ export function CatalogTagRow({
     return m;
   }, [config.tags]);
 
-  const key = `${catalog.id}-${catalog.type}`;
+  const key = catalogIdentityKey(catalog);
   const targetKeys = useMemo(() => new Set([key]), [key]);
   const tags = catalog.tags ?? [];
   const showChips = mode !== 'button';

@@ -309,7 +309,7 @@ const ANILIST_SORT_OPTIONS: { value: AniListSortOption; label: string }[] = [
 ];
 
 function reconcileMergedReferences(catalogs: CatalogConfig[]): CatalogConfig[] {
-  const liveIdSet = new Set(catalogs.map(c => `${c.id}-${c.type}`));
+  const liveIdSet = new Set(catalogs.map(catalogIdentityKey));
 
   // 1) For each merged catalog, prune dead source refs and decide if it survives.
   type MergedSurvivor = { id: string; sources: NonNullable<NonNullable<CatalogConfig['metadata']>['mergedSources']> };
@@ -319,7 +319,7 @@ function reconcileMergedReferences(catalogs: CatalogConfig[]): CatalogConfig[] {
   let next: CatalogConfig[] = catalogs.map(c => {
     if (c.source !== 'merged') return c;
     const sources = c.metadata?.mergedSources || [];
-    const filtered = sources.filter(s => liveIdSet.has(`${s.catalogId}-${s.catalogType}`));
+    const filtered = sources.filter(s => liveIdSet.has(catalogIdentityKey({ id: s.catalogId, type: s.catalogType, instanceId: s.instanceId })));
     if (filtered.length >= 2) {
       mergedSurvivors.set(c.id, { id: c.id, sources: filtered });
       return filtered.length === sources.length
@@ -341,7 +341,7 @@ function reconcileMergedReferences(catalogs: CatalogConfig[]): CatalogConfig[] {
     if (mergedSurvivors.has(c.mergedInto)) return c;
 
     const dropped = droppedMergedSources.get(c.mergedInto);
-    const original = dropped?.find(s => s.catalogId === c.id && s.catalogType === c.type);
+    const original = dropped?.find(s => catalogIdentityKey({ id: s.catalogId, type: s.catalogType, instanceId: s.instanceId }) === catalogIdentityKey(c));
     const { mergedInto, ...rest } = c;
     if (original) {
       return {
@@ -2606,7 +2606,7 @@ const MergedCatalogCard = ({
 
   const sources = catalog.metadata?.mergedSources || [];
   const sourceCatalogs = sources
-    .map(s => allCatalogs.find(c => c.id === s.catalogId && c.type === s.catalogType))
+    .map(s => allCatalogs.find(c => catalogIdentityKey(c) === catalogIdentityKey({ id: s.catalogId, type: s.catalogType, instanceId: s.instanceId })))
     .filter(Boolean) as CatalogConfig[];
 
   const [expanded, setExpanded] = useState(false);
@@ -2923,7 +2923,7 @@ const MergedCatalogCard = ({
           {sourceCatalogs.map(sc => {
             const styleClass = sourceBadgeStyles[sc.source as keyof typeof sourceBadgeStyles] || "bg-gray-700";
             return (
-              <div key={`${sc.id}-${sc.type}`} className="flex items-center gap-2 text-sm flex-wrap">
+              <div key={catalogIdentityKey(sc)} className="flex items-center gap-2 text-sm flex-wrap">
                 <Badge variant="outline" className={`text-[10px] ${styleClass}`}>
                   {sourceBadgeLabels[sc.source] || sc.source.toUpperCase()}
                 </Badge>
@@ -3150,11 +3150,11 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
   };
 
   const wouldDisbandMerge = (): string | null => {
-    const targetKey = `${catalog.id}-${catalog.type}`;
+    const targetKey = catalogIdentityKey(catalog);
     for (const c of config.catalogs) {
       if (c.source !== 'merged') continue;
       const sources = c.metadata?.mergedSources || [];
-      const remaining = sources.filter(s => `${s.catalogId}-${s.catalogType}` !== targetKey);
+      const remaining = sources.filter(s => catalogIdentityKey({ id: s.catalogId, type: s.catalogType, instanceId: s.instanceId }) !== targetKey);
       if (remaining.length < sources.length && remaining.length < 2) return c.name || c.id;
     }
     return null;
@@ -3162,13 +3162,13 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
 
   const executeDelete = () => {
     setConfig(prev => {
-      const targetKey = `${catalog.id}-${catalog.type}`;
+      const targetKey = catalogIdentityKey(catalog);
       let next = prev.catalogs;
 
       next = next.map(c => {
         if (c.source !== 'merged') return c;
         const sources = c.metadata?.mergedSources || [];
-        const filtered = sources.filter(s => `${s.catalogId}-${s.catalogType}` !== targetKey);
+        const filtered = sources.filter(s => catalogIdentityKey({ id: s.catalogId, type: s.catalogType, instanceId: s.instanceId }) !== targetKey);
         if (filtered.length === sources.length) return c;
         return { ...c, metadata: { ...c.metadata, mergedSources: filtered } };
       });
@@ -3181,7 +3181,7 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
         next = next
           .filter(c => !(c.id === merged.id && c.type === merged.type))
           .map(c => {
-            const src = sources.find(s => s.catalogId === c.id && s.catalogType === c.type);
+            const src = sources.find(s => catalogIdentityKey({ id: s.catalogId, type: s.catalogType, instanceId: s.instanceId }) === catalogIdentityKey(c));
             if (!src) return c;
             const { mergedInto, ...rest } = c;
             return {
@@ -4178,8 +4178,8 @@ function CatalogsSettingsContent({
     setIsLoading(true);
     try {
       setConfig(prev => {
-        const selected = prev.catalogs.filter(c => selectedIds.has(`${c.id}-${c.type}`));
-        const remaining = prev.catalogs.filter(c => !selectedIds.has(`${c.id}-${c.type}`));
+        const selected = prev.catalogs.filter(c => selectedIds.has(catalogIdentityKey(c)));
+        const remaining = prev.catalogs.filter(c => !selectedIds.has(catalogIdentityKey(c)));
         return { ...prev, catalogs: [...selected, ...remaining] };
       });
       toast.success(`Moved ${selectedIds.size} catalogs to top of the list`);
@@ -4194,8 +4194,8 @@ function CatalogsSettingsContent({
     setIsLoading(true);
     try {
       setConfig(prev => {
-        const selected = prev.catalogs.filter(c => selectedIds.has(`${c.id}-${c.type}`));
-        const remaining = prev.catalogs.filter(c => !selectedIds.has(`${c.id}-${c.type}`));
+        const selected = prev.catalogs.filter(c => selectedIds.has(catalogIdentityKey(c)));
+        const remaining = prev.catalogs.filter(c => !selectedIds.has(catalogIdentityKey(c)));
         return { ...prev, catalogs: [...remaining, ...selected] };
       });
       toast.success(`Moved ${selectedIds.size} catalogs to bottom of the list`);
@@ -4319,7 +4319,7 @@ function CatalogsSettingsContent({
     scrollMargin: listOffset,
     getItemKey: (index) => {
       const catalog = filteredCatalogs[index];
-      return catalog ? `${catalog.id}-${catalog.type}` : index;
+      return catalog ? catalogIdentityKey(catalog) : index;
     },
   });
 
@@ -4449,16 +4449,16 @@ function CatalogsSettingsContent({
         showInHome: c.showOnHomeByDefault || false,
       }));
       const userCatalogSettings = new Map(
-        prev.catalogs.map(c => [`${c.id}-${c.type}`, { enabled: c.enabled, showInHome: c.showInHome, enableRatingPosters: c.enableRatingPosters }])
+        prev.catalogs.map(c => [catalogIdentityKey(c), { enabled: c.enabled, showInHome: c.showInHome, enableRatingPosters: c.enableRatingPosters }])
       );
-      const userCatalogKeys = new Set(prev.catalogs.map(c => `${c.id}-${c.type}`));
-      const missingCatalogs = defaultCatalogs.filter(def => !userCatalogKeys.has(`${def.id}-${def.type}`));
+      const userCatalogKeys = new Set(prev.catalogs.map(catalogIdentityKey));
+      const missingCatalogs = defaultCatalogs.filter(def => !userCatalogKeys.has(catalogIdentityKey(def)));
       const mergedCatalogs = [
         ...prev.catalogs,
         ...missingCatalogs
       ];
       const hydratedCatalogs = mergedCatalogs.map(defaultCatalog => {
-        const key = `${defaultCatalog.id}-${defaultCatalog.type}`;
+        const key = catalogIdentityKey(defaultCatalog);
         if (userCatalogSettings.has(key)) {
           return { ...defaultCatalog, ...userCatalogSettings.get(key) };
         }
@@ -4474,7 +4474,7 @@ function CatalogsSettingsContent({
   // Get selected catalogs for bulk actions
   const selectedCatalogs = useMemo(() => {
     return filteredCatalogs.filter(catalog =>
-      selectedIds.has(`${catalog.id}-${catalog.type}`)
+      selectedIds.has(catalogIdentityKey(catalog))
     );
   }, [filteredCatalogs, selectedIds]);
 
@@ -4504,9 +4504,9 @@ function CatalogsSettingsContent({
         setConfig(prev => ({
           ...prev,
           catalogs: prev.catalogs.map(c => {
-            const catalogKey = `${c.id}-${c.type}`;
+            const catalogKey = catalogIdentityKey(c);
             const shouldEnable = catalogsToEnable.some(
-              cat => `${cat.id}-${cat.type}` === catalogKey
+              cat => catalogIdentityKey(cat) === catalogKey
             );
             return shouldEnable ? { ...c, enabled: true } : c;
           })
@@ -4540,9 +4540,9 @@ function CatalogsSettingsContent({
         setConfig(prev => ({
           ...prev,
           catalogs: prev.catalogs.map(c => {
-            const catalogKey = `${c.id}-${c.type}`;
+            const catalogKey = catalogIdentityKey(c);
             const shouldDisable = catalogsToDisable.some(
-              cat => `${cat.id}-${cat.type}` === catalogKey
+              cat => catalogIdentityKey(cat) === catalogKey
             );
             return shouldDisable ? { ...c, enabled: false } : c;
           })
@@ -4577,9 +4577,9 @@ function CatalogsSettingsContent({
         setConfig(prev => ({
           ...prev,
           catalogs: prev.catalogs.map(c => {
-            const catalogKey = `${c.id}-${c.type}`;
+            const catalogKey = catalogIdentityKey(c);
             const shouldAddToHome = catalogsToAddToHome.some(
-              cat => `${cat.id}-${cat.type}` === catalogKey
+              cat => catalogIdentityKey(cat) === catalogKey
             );
             return shouldAddToHome ? { ...c, showInHome: true } : c;
           })
@@ -4612,9 +4612,9 @@ function CatalogsSettingsContent({
         setConfig(prev => ({
           ...prev,
           catalogs: prev.catalogs.map(c => {
-            const catalogKey = `${c.id}-${c.type}`;
+            const catalogKey = catalogIdentityKey(c);
             const shouldRemoveFromHome = catalogsToRemoveFromHome.some(
-              cat => `${cat.id}-${cat.type}` === catalogKey
+              cat => catalogIdentityKey(cat) === catalogKey
             );
             return shouldRemoveFromHome ? { ...c, showInHome: false } : c;
           })
@@ -4646,9 +4646,9 @@ function CatalogsSettingsContent({
         setConfig(prev => ({
           ...prev,
           catalogs: prev.catalogs.map(c => {
-            const catalogKey = `${c.id}-${c.type}`;
+            const catalogKey = catalogIdentityKey(c);
             const shouldEnableRatingPosters = catalogsToEnableRatingPosters.some(
-              cat => `${cat.id}-${cat.type}` === catalogKey
+              cat => catalogIdentityKey(cat) === catalogKey
             );
             return shouldEnableRatingPosters ? { ...c, enableRatingPosters: true } : c;
           })
@@ -4678,9 +4678,9 @@ function CatalogsSettingsContent({
         setConfig(prev => ({
           ...prev,
           catalogs: prev.catalogs.map(c => {
-            const catalogKey = `${c.id}-${c.type}`;
+            const catalogKey = catalogIdentityKey(c);
             const shouldDisableRatingPosters = catalogsToDisableRatingPosters.some(
-              cat => `${cat.id}-${cat.type}` === catalogKey
+              cat => catalogIdentityKey(cat) === catalogKey
             );
             return shouldDisableRatingPosters ? { ...c, enableRatingPosters: false } : c;
           })
@@ -4708,9 +4708,9 @@ function CatalogsSettingsContent({
         setConfig(prev => ({
           ...prev,
           catalogs: prev.catalogs.map(c => {
-            const catalogKey = `${c.id}-${c.type}`;
+            const catalogKey = catalogIdentityKey(c);
             const shouldEnableRandomize = catalogsToEnableRandomize.some(
-              cat => `${cat.id}-${cat.type}` === catalogKey
+              cat => catalogIdentityKey(cat) === catalogKey
             );
             return shouldEnableRandomize ? { ...c, randomizePerPage: true } : c;
           })
@@ -4737,9 +4737,9 @@ function CatalogsSettingsContent({
         setConfig(prev => ({
           ...prev,
           catalogs: prev.catalogs.map(c => {
-            const catalogKey = `${c.id}-${c.type}`;
+            const catalogKey = catalogIdentityKey(c);
             const shouldDisableRandomize = catalogsToDisableRandomize.some(
-              cat => `${cat.id}-${cat.type}` === catalogKey
+              cat => catalogIdentityKey(cat) === catalogKey
             );
             return shouldDisableRandomize ? { ...c, randomizePerPage: false } : c;
           })
@@ -4760,8 +4760,8 @@ function CatalogsSettingsContent({
       setConfig(prev => ({
         ...prev,
         catalogs: prev.catalogs.map(c => {
-          const catalogKey = `${c.id}-${c.type}`;
-          if (selectedCatalogs.some(cat => `${cat.id}-${cat.type}` === catalogKey)) {
+          const catalogKey = catalogIdentityKey(c);
+          if (selectedCatalogs.some(cat => catalogIdentityKey(cat) === catalogKey)) {
             return { ...c, displayType };
           }
           return c;
@@ -4781,8 +4781,8 @@ function CatalogsSettingsContent({
       setConfig(prev => ({
         ...prev,
         catalogs: prev.catalogs.map(c => {
-          const catalogKey = `${c.id}-${c.type}`;
-          if (selectedCatalogs.some(cat => `${cat.id}-${cat.type}` === catalogKey)) {
+          const catalogKey = catalogIdentityKey(c);
+          if (selectedCatalogs.some(cat => catalogIdentityKey(cat) === catalogKey)) {
             const { displayType, ...rest } = c as any;
             return rest;
           }
@@ -4804,8 +4804,8 @@ function CatalogsSettingsContent({
       setConfig(prev => ({
         ...prev,
         catalogs: prev.catalogs.map(c => {
-          const catalogKey = `${c.id}-${c.type}`;
-          if (targets.some(cat => `${cat.id}-${cat.type}` === catalogKey)) {
+          const catalogKey = catalogIdentityKey(c);
+          if (targets.some(cat => catalogIdentityKey(cat) === catalogKey)) {
             return { ...c, cacheTTL: Math.max(ttl, minCacheTTLFor(c.id)) };
           }
           return c;
@@ -4830,8 +4830,8 @@ function CatalogsSettingsContent({
       setConfig(prev => ({
         ...prev,
         catalogs: prev.catalogs.map(c => {
-          const catalogKey = `${c.id}-${c.type}`;
-          if (selectedCatalogs.some(cat => `${cat.id}-${cat.type}` === catalogKey)) {
+          const catalogKey = catalogIdentityKey(c);
+          if (selectedCatalogs.some(cat => catalogIdentityKey(cat) === catalogKey)) {
             const { cacheTTL, ...rest } = c as any;
             return rest;
           }
@@ -4853,8 +4853,8 @@ function CatalogsSettingsContent({
       setConfig(prev => ({
         ...prev,
         catalogs: prev.catalogs.map(c => {
-          const catalogKey = `${c.id}-${c.type}`;
-          if (!selectedCatalogs.some(cat => `${cat.id}-${cat.type}` === catalogKey)) return c;
+          const catalogKey = catalogIdentityKey(c);
+          if (!selectedCatalogs.some(cat => catalogIdentityKey(cat) === catalogKey)) return c;
           const currentType = c.displayType || c.type;
           if (currentType === find) {
             count++;
@@ -5007,6 +5007,7 @@ function CatalogsSettingsContent({
     const mergedSources = selectedCatalogs.map(c => ({
       catalogId: c.id,
       catalogType: c.type,
+      instanceId: c.instanceId,
       originalEnabled: !!c.enabled,
       originalShowInHome: !!c.showInHome,
     }));
@@ -5023,11 +5024,11 @@ function CatalogsSettingsContent({
     };
 
     setConfig(prev => {
-      const selectedKeys = new Set(selectedCatalogs.map(s => `${s.id}-${s.type}`));
+      const selectedKeys = new Set(selectedCatalogs.map(catalogIdentityKey));
       const updated = prev.catalogs.map(c =>
-        selectedKeys.has(`${c.id}-${c.type}`) ? { ...c, mergedInto: mergeId } : c
+        selectedKeys.has(catalogIdentityKey(c)) ? { ...c, mergedInto: mergeId } : c
       );
-      const firstAbsorbedIdx = updated.findIndex(c => selectedKeys.has(`${c.id}-${c.type}`));
+      const firstAbsorbedIdx = updated.findIndex(c => selectedKeys.has(catalogIdentityKey(c)));
       const insertAt = firstAbsorbedIdx >= 0 ? firstAbsorbedIdx : updated.length;
       const withMerged = [...updated.slice(0, insertAt), newCatalog, ...updated.slice(insertAt)];
       return { ...prev, catalogs: reconcileMergedReferences(withMerged) };
@@ -5041,15 +5042,13 @@ function CatalogsSettingsContent({
     const sources = mergedCatalog.metadata?.mergedSources || [];
 
     setConfig(prev => {
-      const idx = prev.catalogs.findIndex(c =>
-        c.id === mergedCatalog.id && c.type === mergedCatalog.type
-      );
+      const idx = prev.catalogs.findIndex(c => catalogIdentityKey(c) === catalogIdentityKey(mergedCatalog));
       if (idx === -1) return prev;
 
       const restored = prev.catalogs
         .filter((_, i) => i !== idx)
         .map(c => {
-          const src = sources.find(s => s.catalogId === c.id && s.catalogType === c.type);
+          const src = sources.find(s => catalogIdentityKey({ id: s.catalogId, type: s.catalogType, instanceId: s.instanceId }) === catalogIdentityKey(c));
           if (!src) return c;
           const { mergedInto, ...rest } = c;
           return {
@@ -5089,12 +5088,12 @@ function CatalogsSettingsContent({
           // 1) Disband each selected merged catalog: restore sources & remove merged entry.
           for (const merged of toDisband) {
             const sources = merged.metadata?.mergedSources || [];
-            const idx = next.findIndex(c => c.id === merged.id && c.type === merged.type);
+            const idx = next.findIndex(c => catalogIdentityKey(c) === catalogIdentityKey(merged));
             if (idx === -1) continue;
             next = next
               .filter((_, i) => i !== idx)
               .map(c => {
-                const src = sources.find(s => s.catalogId === c.id && s.catalogType === c.type);
+                const src = sources.find(s => catalogIdentityKey({ id: s.catalogId, type: s.catalogType, instanceId: s.instanceId }) === catalogIdentityKey(c));
                 if (!src) return c;
                 const { mergedInto, ...rest } = c;
                 return {
@@ -5107,11 +5106,11 @@ function CatalogsSettingsContent({
 
           // 2) Defensive scrub: for every still-living merged catalog, drop any
           //    mergedSources that point at catalogs we're about to delete.
-          const toDeleteKeys = new Set(toDelete.map(c => `${c.id}-${c.type}`));
+          const toDeleteKeys = new Set(toDelete.map(catalogIdentityKey));
           next = next.map(c => {
             if (c.source !== 'merged') return c;
             const sources = c.metadata?.mergedSources || [];
-            const filtered = sources.filter(s => !toDeleteKeys.has(`${s.catalogId}-${s.catalogType}`));
+            const filtered = sources.filter(s => !toDeleteKeys.has(catalogIdentityKey({ id: s.catalogId, type: s.catalogType, instanceId: s.instanceId })));
             if (filtered.length === sources.length) return c;
             return { ...c, metadata: { ...c.metadata, mergedSources: filtered } };
           });
@@ -5124,9 +5123,9 @@ function CatalogsSettingsContent({
           for (const merged of orphanMerged) {
             const sources = merged.metadata?.mergedSources || [];
             next = next
-              .filter(c => !(c.id === merged.id && c.type === merged.type))
+              .filter(c => catalogIdentityKey(c) !== catalogIdentityKey(merged))
               .map(c => {
-                const src = sources.find(s => s.catalogId === c.id && s.catalogType === c.type);
+                const src = sources.find(s => catalogIdentityKey({ id: s.catalogId, type: s.catalogType, instanceId: s.instanceId }) === catalogIdentityKey(c));
                 if (!src) return c;
                 const { mergedInto, ...rest } = c;
                 return {
@@ -5138,7 +5137,7 @@ function CatalogsSettingsContent({
           }
 
           // 4) Apply the regular delete now that no merged catalog references them.
-          next = next.filter(c => !toDeleteKeys.has(`${c.id}-${c.type}`));
+          next = next.filter(c => !toDeleteKeys.has(catalogIdentityKey(c)));
 
           return { ...prev, catalogs: reconcileMergedReferences(next) };
         });
@@ -5604,7 +5603,7 @@ function CatalogsSettingsContent({
                   if (!catalog) return null;
                   return (
                     <div
-                      key={`${catalog.id}-${catalog.type}`}
+                      key={catalogIdentityKey(catalog)}
                       data-index={virtualRow.index}
                       ref={rowVirtualizer.measureElement}
                       className="absolute left-0 top-0 w-full pb-2"
@@ -5619,7 +5618,7 @@ function CatalogsSettingsContent({
               <div className="space-y-2">
               {filteredCatalogs.map((catalog) => (
                 <motion.div
-                  key={`${catalog.id}-${catalog.type}`}
+                  key={catalogIdentityKey(catalog)}
                   layout
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -5797,7 +5796,7 @@ function CatalogsSettingsContent({
               {selectedCatalogs.map(c => {
                 const styleClass = sourceBadgeStyles[c.source as keyof typeof sourceBadgeStyles] || 'bg-gray-700';
                 return (
-                  <div key={`${c.id}-${c.type}`} className="flex items-center gap-2 text-sm">
+                  <div key={catalogIdentityKey(c)} className="flex items-center gap-2 text-sm">
                     <Badge variant="outline" className={`text-[10px] ${styleClass}`}>
                       {sourceBadgeLabels[c.source] || c.source.toUpperCase()}
                     </Badge>

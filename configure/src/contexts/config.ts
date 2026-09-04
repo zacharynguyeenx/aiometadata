@@ -103,7 +103,8 @@ export interface CatalogConfig {
     /** Source references for merged catalogs (id starts with 'merged.') */
     mergedSources?: Array<{
       catalogId: string;       // source catalog id, e.g. "tmdb.top"
-      catalogType: string;     // source catalog type at merge time
+      catalogType: CatalogConfig['type']; // source catalog type at merge time
+      instanceId?: string;     // source copy identity; absent is the canonical instance
       originalEnabled: boolean;
       originalShowInHome: boolean;
     }>;

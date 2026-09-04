@@ -2,8 +2,9 @@ import { useMemo, useCallback } from 'react';
 import { useConfig } from '@/contexts/ConfigContext';
 import { MAX_TAG_NAME_LENGTH, type CatalogConfig, type TagDef, type TagColorKey } from '@/contexts/config';
 import { nextTagColor } from '@/lib/tagColors';
+import { catalogIdentityKey } from '@/lib/catalogIdentity';
 
-const catalogKey = (c: CatalogConfig) => `${c.id}-${c.type}`;
+const catalogKey = catalogIdentityKey;
 
 const sameTag = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 

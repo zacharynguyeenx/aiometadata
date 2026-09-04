@@ -21,6 +21,7 @@ import { X, MoreHorizontal, Power, PowerOff, Home, HomeIcon, Trash2, Loader2, St
 import { CatalogConfig } from '@/contexts/config';
 import { cn } from '@/lib/utils';
 import { TagEditorDialog } from '@/components/TagEditorDialog';
+import { catalogIdentityKey } from '@/lib/catalogIdentity';
 
 type BulkActionType =
   | 'enable'
@@ -114,7 +115,7 @@ export function BulkActionBar({
   const [showFindReplaceDialog, setShowFindReplaceDialog] = useState(false);
   const [showTagDialog, setShowTagDialog] = useState(false);
   const tagTargetKeys = useMemo(
-    () => new Set(selectedCatalogs.map(c => `${c.id}-${c.type}`)),
+    () => new Set(selectedCatalogs.map(catalogIdentityKey)),
     [selectedCatalogs]
   );
   const [findTypeValue, setFindTypeValue] = useState('');
