@@ -2354,7 +2354,7 @@ async function getAniListCatalog(
     // Handle trending catalog - doesn't require username
     if (catalogId === 'anilist.trending') {
       const pageSize = 50;
-    const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
+      const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
       const customCacheTTL = catalogConfig?.cacheTTL || null;
       const sfw = config.sfw || false;
       
