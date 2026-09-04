@@ -3522,7 +3522,9 @@ async function getMergedCatalog(
     try {
       const effectiveGenre = genre || await resolveDefaultGenre(src.catalogId, src.catalogType) || '';
       const cacheArgs = buildCatalogCacheArgs(src.catalogId, src.catalogType, srcPage, effectiveGenre, config);
-      const routeId = simklRouteId(src.catalogId, src.instanceId);
+      const routeId = src.catalogId.startsWith('simkl.')
+        ? simklRouteId(src.catalogId, src.instanceId)
+        : src.catalogId;
       const catalogKey = `${routeId}:${src.catalogType}:${stableStringify(cacheArgs)}`;
 
       const result = await cacheWrapCatalog(userUUID, catalogKey, async () => {
