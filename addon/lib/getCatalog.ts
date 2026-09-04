@@ -2354,7 +2354,7 @@ async function getAniListCatalog(
     // Handle trending catalog - doesn't require username
     if (catalogId === 'anilist.trending') {
       const pageSize = 50;
-      const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
+    const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
       const customCacheTTL = catalogConfig?.cacheTTL || null;
       const sfw = config.sfw || false;
       
@@ -2563,7 +2563,7 @@ async function getMalUserListCatalog(
       return [];
     }
 
-      const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
+    const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
     const pageSize = parseInt(process.env.CATALOG_LIST_ITEMS_SIZE as string) || 20;
     const offset = (page - 1) * pageSize;
     const sort = catalogConfig?.sort || 'list_updated_at';

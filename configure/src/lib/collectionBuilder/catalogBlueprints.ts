@@ -210,6 +210,10 @@ interface MergeChild {
   instanceId?: string;
 }
 
+function catalogKey(id: string, type: string, instanceId?: string): string {
+  return `${id}:${type}:${instanceId || 'canonical'}`;
+}
+
 /** A merge needs at least two sources; the app dissolves anything smaller. */
 const MIN_MERGE_SOURCES = 2;
 
@@ -234,7 +238,7 @@ export function resolveCatalogAdditions(
   const mayRebuild = (source: ImportedSource): boolean =>
     rebuildableKeys === null || rebuildableKeys.has(`${source.catalogId}:${source.type}`);
 
-  const byKey = new Map(existing.map(catalog => [`${catalog.id}:${catalog.type}`, catalog]));
+  const byKey = new Map(existing.map(catalog => [catalogKey(catalog.id, catalog.type, catalog.instanceId), catalog]));
 
   const added: CatalogConfig[] = [];
   const enabled: string[] = [];
@@ -252,7 +256,7 @@ export function resolveCatalogAdditions(
   const blueprintIds = new Set(usable.map(blueprint => blueprint.id));
 
   for (const blueprint of usable) {
-    const key = `${blueprint.id}:${blueprint.type}`;
+    const key = catalogKey(blueprint.id, blueprint.type);
     if (claimed.has(key)) continue;
     claimed.add(key);
 
@@ -281,19 +285,20 @@ export function resolveCatalogAdditions(
 
   /** Existing catalog, shipped blueprint, self describing id, or built-in. */
   const resolveChild = (child: MergeChild): CatalogConfig | 'existing' | undefined => {
-    const key = `${child.catalogId}:${child.catalogType}`;
+    const key = catalogKey(child.catalogId, child.catalogType, child.instanceId);
     if (byKey.has(key)) return 'existing';
 
     const blueprint = blueprintById.get(child.catalogId);
-    if (blueprint) return { ...blueprint } as CatalogConfig;
+    if (blueprint) return { ...blueprint, ...(child.instanceId && { instanceId: child.instanceId }) } as CatalogConfig;
 
     const rebuilt = reconstructFromId({ catalogId: child.catalogId, type: child.catalogType });
-    if (rebuilt) return rebuilt;
+    if (rebuilt) return { ...rebuilt, ...(child.instanceId && { instanceId: child.instanceId }) };
 
     const definition = findDefinition(child.catalogId, child.catalogType);
     if (!definition) return undefined;
     return {
       id: definition.id,
+      ...(child.instanceId && { instanceId: child.instanceId }),
       type: definition.type,
       name: definition.name,
       source: definition.source as CatalogConfig['source'],
@@ -331,13 +336,13 @@ export function resolveCatalogAdditions(
       if (!take(parentKey)) continue;
 
       for (const child of staged) {
-        const childKey = `${child.id}:${child.type}`;
+        const childKey = catalogKey(child.id, child.type, child.instanceId);
         if (claimed.has(childKey)) continue;
         claimed.add(childKey);
         added.push({ ...child, mergedInto: source.catalogId, showInHome: false });
       }
       for (const child of kept) {
-        const childKey = `${child.catalogId}:${child.catalogType}`;
+        const childKey = catalogKey(child.catalogId, child.catalogType, child.instanceId);
         if (byKey.has(childKey)) absorbed.push({ key: childKey, parentId: source.catalogId });
       }
 
