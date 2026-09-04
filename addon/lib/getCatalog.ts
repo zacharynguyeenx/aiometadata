@@ -33,7 +33,7 @@ import redis from './redisClient.js';
 const logger = consola.withTag('Catalog');
 import { cacheWrapMetaSmart } from './getCache.js';
 import { UserConfig } from '../types/index.js';
-import { applySimklCatalogOptions, SIMKL_CATALOG_PAGE_SIZE } from '../utils/simklCatalogOptions.js';
+import { applySimklCatalogOptions } from '../utils/simklCatalogOptions.js';
 
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 const TVDB_IMAGE_BASE = 'https://artworks.thetvdb.com';
@@ -2946,7 +2946,7 @@ async function getSimklCatalog(
     const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
     const simklSort = catalogConfig?.sort || 'default';
     const simklLimit = catalogConfig?.metadata?.itemCount;
-    const simklPageSize = SIMKL_CATALOG_PAGE_SIZE;
+    const simklPageSize = parseInt(process.env.CATALOG_LIST_ITEMS_SIZE || '20', 10);
     const simklOptionsActive = simklSort !== 'default' || simklLimit !== undefined;
     
     // For watchlists, use default pageSize (Simkl doesn't support pagination, we do local pagination)
