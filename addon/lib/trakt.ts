@@ -1,5 +1,5 @@
 const consola = require('consola');
-const { httpGet, httpPost } = require('../utils/httpClient.js');
+import { httpGet, httpPost } from '../utils/httpClient.js';
 
 const logger = consola.withTag('Trakt');
 

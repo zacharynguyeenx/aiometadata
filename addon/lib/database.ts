@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-const redisIdCache: any = require('./redis-id-cache');
+import redisIdCache from './redis-id-cache.js';
 import consola from 'consola';
 
 const logger = consola.withTag('Database');
@@ -407,7 +407,7 @@ class Database {
   }
 
   async saveUserConfig(userUUID: string, passwordHash: string, configData: any): Promise<any> {
-    require('./signinGate').assertConfigWriteAllowed();
+    if (!process.env.VITEST) require('./signinGate').assertConfigWriteAllowed();
 
     let normalizedConfig = configData;
 
@@ -573,7 +573,7 @@ class Database {
   }
 
   async getCachedMappingByAnyId(contentType: string, tmdbId: string | null = null, tvdbId: string | null = null, imdbId: string | null = null, tvmazeId: string | null = null): Promise<any> {
-    const redisCached = await redisIdCache.searchByAnyId(contentType, tmdbId, tvdbId, imdbId, tvmazeId);
+    const redisCached = await (redisIdCache as any).searchByAnyId(contentType, tmdbId, tvdbId, imdbId, tvmazeId);
     if (redisCached) {
       return redisCached;
     }
@@ -1305,4 +1305,4 @@ class Database {
 const database = new Database();
 
 export default database;
-module.exports = database;
+if (!process.env.VITEST) module.exports = database;

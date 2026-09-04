@@ -129,6 +129,7 @@ const MDBLIST_LIST_ID = /^mdblist\.(\d+)$/;
 interface ImportedSource {
   catalogId: string;
   type: string;
+  instanceId?: string;
   name?: string;
   baseType?: string;
 }

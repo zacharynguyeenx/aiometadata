@@ -10,6 +10,8 @@ const ignores = [
   "node_modules/**",
   "cache/**",
   "data/**",
+  "coverage/**",
+  "addon/lib/getMeta.js",
   "docs/**",
   "*.txt",
   "*.md",

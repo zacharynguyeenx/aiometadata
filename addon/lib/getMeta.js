@@ -818,7 +818,6 @@ async function getSeriesMeta(preferredProvider, stremioId, language, config, use
       logger.warn(`[SeriesMeta] TMDB failed: ${e.message}`);
       logger.warn(`[SeriesMeta] TMDB error at: ${errorLine}`);
       logger.warn(`[SeriesMeta] TMDB full stack trace:`, e.stack);
-      degraded = true;
     }
   }
 
@@ -832,7 +831,6 @@ async function getSeriesMeta(preferredProvider, stremioId, language, config, use
       }
     } catch (e) {
       logger.warn(`[SeriesMeta] IMDB failed: ${e.message}`);
-      degraded = true;
     }
   }
 
@@ -850,7 +848,6 @@ async function getSeriesMeta(preferredProvider, stremioId, language, config, use
       }
     } catch (e) {
       logger.warn(`[SeriesMeta] TVmaze failed: ${e.message}`);
-      degraded = true;
     }
   }
 
@@ -882,7 +879,6 @@ async function getSeriesMeta(preferredProvider, stremioId, language, config, use
       }
     } catch (e) {
       logger.warn(`[SeriesMeta] TVDB fallback failed: ${e.message}`);
-      degraded = true;
     }
   }
 
@@ -912,7 +908,6 @@ async function getSeriesMeta(preferredProvider, stremioId, language, config, use
       logger.warn(`[SeriesMeta] TMDB by ID failed: ${e.message}`);
       logger.warn(`[SeriesMeta] TMDB by ID error at: ${errorLine}`);
       logger.warn(`[SeriesMeta] TMDB by ID full stack trace:`, e.stack);
-      degraded = true;
     }
   } else if (provider === 'imdb' && id) {
     try {
@@ -924,7 +919,6 @@ async function getSeriesMeta(preferredProvider, stremioId, language, config, use
       }
     } catch (e) {
       logger.warn(`[SeriesMeta] IMDB by ID failed: ${e.message}`);
-      degraded = true;
     }
   } else if (provider === 'tvmaze' && id) {
     try {

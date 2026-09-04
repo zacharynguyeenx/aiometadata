@@ -4,7 +4,7 @@ This guide will help you set up your development environment and understand the 
 
 ## Prerequisites
 
-- Node.js 22.x
+- Node.js 24.x (the version declared by `package.json`)
 - npm 9.x or higher
 - Git
 - MongoDB (local or Atlas)
@@ -71,8 +71,16 @@ git checkout -b feature/your-feature-name
 
 3. **Testing**:
 ```bash
-# Run tests
+# Run the fast, isolated test suite (no Docker, credentials, Redis, or providers)
 npm test
+
+# Run tests with the initial coverage report
+npm run test:coverage
+
+# The first starter-suite result is the coverage floor. The suite fails if it regresses.
+
+# Check all TypeScript projects
+npm run typecheck
 
 # Run all lint scopes
 npm run lint
