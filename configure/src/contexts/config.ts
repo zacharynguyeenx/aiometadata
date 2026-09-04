@@ -27,7 +27,7 @@ export interface CatalogConfig {
   genres?: string[]; // Optional genres array for catalogs that support genre filtering
   manifestData?: any; // Store original manifest data for advanced features like skip support
   // MDBList, Trakt, and AniList sorting options
-  sort?: 'rank' | 'score' | 'usort' | 'score_average' | 'released' | 'releasedigital' | 'imdbrating' | 'imdbvotes' | 'last_air_date' | 'imdbpopular' | 'tmdbpopular' | 'rogerbert' | 'rtomatoes' | 'rtaudience' | 'metacritic' | 'myanimelist' | 'letterrating' | 'lettervotes' | 'budget' | 'revenue' | 'runtime' | 'title' | 'added' | 'random' | 'default' | 'MEDIA_ID' | 'SCORE' | 'STATUS' | 'PROGRESS' | 'PROGRESS_VOLUMES' | 'REPEAT' | 'PRIORITY' | 'STARTED_ON' | 'FINISHED_ON' | 'ADDED_TIME' | 'UPDATED_TIME' | 'MEDIA_TITLE_ROMAJI' | 'MEDIA_TITLE_ENGLISH' | 'MEDIA_TITLE_NATIVE' | 'MEDIA_POPULARITY' | 'popularity' | 'percentage' | 'votes' | 'my_rating' | 'watched' | 'collected' | 'tmdb_rating' | 'rt_tomatometer' | 'rt_audience' | 'metascore' | 'tmdb_votes' | 'popularity' | 'release_date' | 'vote_average';
+  sort?: 'rank' | 'score' | 'usort' | 'score_average' | 'released' | 'releasedigital' | 'imdbrating' | 'imdbvotes' | 'last_air_date' | 'imdbpopular' | 'tmdbpopular' | 'rogerbert' | 'rtomatoes' | 'rtaudience' | 'metacritic' | 'myanimelist' | 'letterrating' | 'lettervotes' | 'budget' | 'revenue' | 'runtime' | 'title' | 'added' | 'random' | 'default' | 'home_release_date' | 'MEDIA_ID' | 'SCORE' | 'STATUS' | 'PROGRESS' | 'PROGRESS_VOLUMES' | 'REPEAT' | 'PRIORITY' | 'STARTED_ON' | 'FINISHED_ON' | 'ADDED_TIME' | 'UPDATED_TIME' | 'MEDIA_TITLE_ROMAJI' | 'MEDIA_TITLE_ENGLISH' | 'MEDIA_TITLE_NATIVE' | 'MEDIA_POPULARITY' | 'popularity' | 'percentage' | 'votes' | 'my_rating' | 'watched' | 'collected' | 'tmdb_rating' | 'rt_tomatometer' | 'rt_audience' | 'metascore' | 'tmdb_votes' | 'popularity' | 'release_date' | 'vote_average';
   order?: 'asc' | 'desc';
   // Trakt sorting direction
   sortDirection?: 'asc' | 'desc';
@@ -52,7 +52,6 @@ export interface CatalogConfig {
   mergedInto?: string;
   // List metadata (item count, privacy, author, description, AniList-specific fields, Trakt Up Next settings, Letterboxd-specific fields, TMDB-specific fields)
   metadata?: {
-    itemCount?: number;
     privacy?: string;
     author?: string;
     description?: string;
@@ -76,6 +75,7 @@ export interface CatalogConfig {
     hideWatchedMdblist?: boolean;
     hideWatchedSimkl?: boolean;
     hideUnreleasedDigital?: boolean;
+    hideUnreleasedShows?: boolean;
     identifier?: string;
     url?: string;
     slug?: string;
@@ -96,6 +96,7 @@ export interface CatalogConfig {
     // Simkl-specific metadata
     interval?: 'today' | 'week' | 'month';
     pageSize?: number; // Results per page for Simkl trending and watchlist catalogs (default: 50)
+    itemCount?: number; // Optional total catalogue cap for Simkl (1-20)
     status?: 'watching' | 'plantowatch' | 'hold' | 'completed' | 'dropped'; // Status for Simkl watchlist catalogs
     /** Source references for merged catalogs (id starts with 'merged.') */
     mergedSources?: Array<{

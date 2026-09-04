@@ -33,6 +33,7 @@ import redis from './redisClient.js';
 const logger = consola.withTag('Catalog');
 import { cacheWrapMetaSmart } from './getCache.js';
 import { UserConfig } from '../types/index.js';
+import { applySimklCatalogOptions, SIMKL_CATALOG_PAGE_SIZE } from '../utils/simklCatalogOptions.js';
 
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 const TVDB_IMAGE_BASE = 'https://artworks.thetvdb.com';
@@ -2943,6 +2944,10 @@ async function getSimklCatalog(
     logger.info(`[Simkl] Fetching catalog: ${catalogId}, Type: ${type}, Page: ${page}`);
     
     const catalogConfig = config.catalogs?.find(c => c.id === catalogId);
+    const simklSort = catalogConfig?.sort || 'default';
+    const simklLimit = catalogConfig?.metadata?.itemCount;
+    const simklPageSize = SIMKL_CATALOG_PAGE_SIZE;
+    const simklOptionsActive = simklSort !== 'default' || simklLimit !== undefined;
     
     // For watchlists, use default pageSize (Simkl doesn't support pagination, we do local pagination)
     // For trending, use configured pageSize
@@ -2976,15 +2981,22 @@ async function getSimklCatalog(
       // check, and this catalog's short TTL would shrink it for the watchlist too.
       const allItems = await fetchSimklUpNextItems(accessToken, config, buckets);
 
-      const startIndex = (page - 1) * pageSize;
-      const pageItems = allItems.slice(startIndex, startIndex + pageSize);
+      const pageItems = simklOptionsActive
+        ? allItems
+        : allItems.slice((page - 1) * pageSize, page * pageSize);
       if (pageItems.length === 0) {
         logger.info(`[Simkl Up Next] No items at page ${page}`);
         return [];
       }
 
       const useShowPoster = catalogConfig?.metadata?.useShowPosterForUpNext === true;
-      const metas = await parseSimklUpNextItems(pageItems, config, userUUID, useShowPoster);
+      let metas = await parseSimklUpNextItems(pageItems, config, userUUID, useShowPoster);
+      const { applyCatalogFilters } = require('../utils/catalogFilters.js');
+      if (simklOptionsActive) {
+        metas = await applyCatalogFilters(metas, { type, config, catalogConfig, cleanId: catalogId });
+        metas = applySimklCatalogOptions(metas, { sort: simklSort, limit: simklLimit, userUUID, catalogId });
+        metas = metas.slice((page - 1) * simklPageSize, page * simklPageSize);
+      }
       logger.success(`[Simkl Up Next] Processed ${metas.length} items (page ${page}) in ${Date.now() - upNextStart}ms`);
       return metas;
     }
@@ -3005,8 +3017,8 @@ async function getSimklCatalog(
       const result = await fetchSimklGenreItems(
         discoverParams.media,
         discoverParams,
-        page,
-        discoverPageSize,
+        simklOptionsActive ? 1 : page,
+        simklOptionsActive ? 100000 : discoverPageSize,
         catalogConfig?.cacheTTL
       );
 
@@ -3016,7 +3028,7 @@ async function getSimklCatalog(
         ? genre.toLowerCase() as 'today' | 'week' | 'month'
         : (catalogConfig?.metadata?.interval as 'today' | 'week' | 'month')) || 'today';
       logger.debug(`[Simkl] Fetching trending movies (interval: ${interval}, pageSize: ${pageSize})`);
-      const result = await fetchSimklTrendingItems('movies', interval, page, pageSize, catalogConfig?.cacheTTL);
+      const result = await fetchSimklTrendingItems('movies', interval, simklOptionsActive ? 1 : page, simklOptionsActive ? 100000 : pageSize, catalogConfig?.cacheTTL);
       const items = (result.items as any[]).filter((it: any) => {
         const ids = it.ids || {};
         const ok = !!(ids.imdb || ids.tmdb || ids.tvdb || ids.mal || ids.simkl || ids.simkl_id);
@@ -3029,7 +3041,7 @@ async function getSimklCatalog(
         ? genre.toLowerCase() as 'today' | 'week' | 'month'
         : (catalogConfig?.metadata?.interval as 'today' | 'week' | 'month')) || 'today';
       logger.debug(`[Simkl] Fetching trending shows (interval: ${interval}, pageSize: ${pageSize})`);
-      const result = await fetchSimklTrendingItems('shows', interval, page, pageSize, catalogConfig?.cacheTTL);
+      const result = await fetchSimklTrendingItems('shows', interval, simklOptionsActive ? 1 : page, simklOptionsActive ? 100000 : pageSize, catalogConfig?.cacheTTL);
       const items = (result.items as any[]).filter((it: any) => {
         const ids = it.ids || {};
         const ok = !!(ids.imdb || ids.tmdb || ids.tvdb || ids.mal || ids.simkl || ids.simkl_id);
@@ -3042,7 +3054,7 @@ async function getSimklCatalog(
         ? genre.toLowerCase() as 'today' | 'week' | 'month'
         : (catalogConfig?.metadata?.interval as 'today' | 'week' | 'month')) || 'today';
       logger.debug(`[Simkl] Fetching trending anime (interval: ${interval}, pageSize: ${pageSize})`);
-      const result = await fetchSimklTrendingItems('anime', interval, page, pageSize, catalogConfig?.cacheTTL);
+      const result = await fetchSimklTrendingItems('anime', interval, simklOptionsActive ? 1 : page, simklOptionsActive ? 100000 : pageSize, catalogConfig?.cacheTTL);
       const items = (result.items as any[]).filter((it: any) => {
         const ids = it.ids || {};
         const ok = !!(ids.imdb || ids.tmdb || ids.tvdb || ids.mal || ids.anilist || ids.kitsu || ids.anidb || ids.simkl || ids.simkl_id);
@@ -3058,7 +3070,7 @@ async function getSimklCatalog(
         ? genre.toLowerCase() as 'today' | 'week' | 'month'
         : (catalogConfig?.metadata?.interval as 'today' | 'week' | 'month')) || 'week';
       logger.debug(`[Simkl] Fetching recipe ${recipe} (${recipeType}, interval: ${interval}, pageSize: ${pageSize})`);
-      const result = await fetchSimklRecipeItems(recipe, recipeType, interval, page, pageSize, catalogConfig?.cacheTTL);
+      const result = await fetchSimklRecipeItems(recipe, recipeType, interval, simklOptionsActive ? 1 : page, simklOptionsActive ? 100000 : pageSize, catalogConfig?.cacheTTL);
       const items = (result.items as any[]).filter((it: any) => {
         const ids = it.ids || {};
         return !!(ids.imdb || ids.tmdb || ids.tvdb || ids.mal || ids.anilist || ids.kitsu || ids.anidb || ids.simkl || ids.simkl_id);
@@ -3066,7 +3078,7 @@ async function getSimklCatalog(
       response = { items, hasMore: result.hasMore, totalItems: result.totalItems };
     } else if (catalogId === 'simkl.dvd.movies') {
       logger.debug(`[Simkl] Fetching latest DVD movie releases (pageSize: ${pageSize})`);
-      const result = await fetchSimklDvdReleases(page, pageSize, catalogConfig?.cacheTTL);
+      const result = await fetchSimklDvdReleases(simklOptionsActive ? 1 : page, simklOptionsActive ? 100000 : pageSize, catalogConfig?.cacheTTL);
       const items = (result.items as any[]).filter((it: any) => {
         const ids = it.ids || {};
         const ok = !!(ids.imdb || ids.tmdb || ids.tvdb || ids.simkl || ids.simkl_id);
@@ -3109,8 +3121,8 @@ async function getSimklCatalog(
       // Local pagination
       const globalItemIndex = (page - 1) * pageSize;
       const endIndex = globalItemIndex + pageSize;
-      const paginatedItems = validItems.slice(globalItemIndex, endIndex);
-      const hasMore = endIndex < validItems.length;
+       const paginatedItems = simklOptionsActive ? validItems : validItems.slice(globalItemIndex, endIndex);
+       const hasMore = simklOptionsActive ? false : endIndex < validItems.length;
       
       logger.debug(`[Simkl] Local pagination: ${validItems.length} total valid items, showing ${globalItemIndex}-${Math.min(endIndex, validItems.length)} (hasMore: ${hasMore})`);
       
@@ -3199,8 +3211,8 @@ async function getSimklCatalog(
         
         const globalItemIndex = (page - 1) * pageSize;
         const endIndex = globalItemIndex + pageSize;
-        const paginatedItems = allItems.slice(globalItemIndex, endIndex);
-        const hasMore = endIndex < allItems.length;
+        const paginatedItems = simklOptionsActive ? allItems : allItems.slice(globalItemIndex, endIndex);
+        const hasMore = simklOptionsActive ? false : endIndex < allItems.length;
         
         logger.debug(`[Simkl] Local pagination: ${allItems.length} total items, showing ${globalItemIndex}-${Math.min(endIndex, allItems.length)} (hasMore: ${hasMore})`);
         
@@ -3228,11 +3240,17 @@ async function getSimklCatalog(
       || (catalogId.startsWith('simkl.recipe.') && catalogId.endsWith('.anime'));
     const parseStart = Date.now();
     let metas = await parseSimklItems(response.items, type as 'movie' | 'series', config, userUUID, includeVideos, isAnimeCatalog);
+    const { applyCatalogFilters } = require('../utils/catalogFilters.js');
+    if (simklOptionsActive) {
+      metas = await applyCatalogFilters(metas, { type, config, catalogConfig, cleanId: catalogId });
+      metas = applySimklCatalogOptions(metas, { sort: simklSort, limit: simklLimit, userUUID, catalogId });
+    }
+    const pageMetas = simklOptionsActive ? metas.slice((page - 1) * simklPageSize, page * simklPageSize) : metas;
     const parseTime = Date.now() - parseStart;
     logger.info(`[Simkl] parseSimklItems took ${parseTime}ms for ${response.items.length} items`);
     
     logger.success(`[Simkl] Processed ${metas.length} items for catalog ${catalogId} (page ${page})`);
-    return metas;
+    return pageMetas;
     
   } catch (err: any) {
     const errorLine = err.stack?.split('\n')[1]?.trim() || 'unknown';

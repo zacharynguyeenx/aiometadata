@@ -283,6 +283,12 @@ const TRAKT_SORT_OPTIONS: { value: TraktSortOption; label: string; vip?: boolean
 
 type AniListSortOption = 'MEDIA_ID' | 'SCORE' | 'STATUS' | 'PROGRESS' | 'PROGRESS_VOLUMES' | 'REPEAT' | 'PRIORITY' | 'STARTED_ON' | 'FINISHED_ON' | 'ADDED_TIME' | 'UPDATED_TIME' | 'MEDIA_TITLE_ROMAJI' | 'MEDIA_TITLE_ENGLISH' | 'MEDIA_TITLE_NATIVE' | 'MEDIA_POPULARITY';
 
+const SIMKL_SORT_OPTIONS = [
+  { value: 'default', label: 'Default (Original Order)' },
+  { value: 'home_release_date', label: 'Home Release Date (Newest)' },
+  { value: 'random', label: 'Random (Daily)' },
+] as const;
+
 const ANILIST_SORT_OPTIONS: { value: AniListSortOption; label: string }[] = [
   { value: 'ADDED_TIME', label: 'Added Time' },
   { value: 'UPDATED_TIME', label: 'Updated Time' },
@@ -946,6 +952,8 @@ const SimklSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogCon
   const isUpNext = catalog.id.startsWith('simkl.upnext');
   const isCombinedUpNext = catalog.id === 'simkl.upnext';
   const [pageSize, setPageSize] = useState<number>(catalog.metadata?.pageSize || 50);
+  const [sort, setSort] = useState<string>(catalog.sort || 'default');
+  const [itemCount, setItemCount] = useState<string>(catalog.metadata?.itemCount?.toString() || '0');
   const [useShowPoster, setUseShowPoster] = useState<boolean>(catalog.metadata?.useShowPosterForUpNext || false);
   const [includeAnime, setIncludeAnime] = useState<boolean>(catalog.metadata?.includeAnimeInUpNext !== false);
   const [hideWatchedTrakt, setHideWatchedTrakt] = useState<string>(catalog.metadata?.hideWatchedTrakt === true ? 'on' : catalog.metadata?.hideWatchedTrakt === false ? 'off' : 'global');
@@ -971,14 +979,20 @@ const SimklSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogCon
     const hideSimklValue = hideWatchedSimkl === 'on' ? true : hideWatchedSimkl === 'off' ? false : undefined;
     const hideUnreleasedDigitalValue = hideUnreleasedDigital === 'on' ? true : hideUnreleasedDigital === 'off' ? false : undefined;
     const hideUnreleasedShowsValue = hideUnreleasedShows === 'on' ? true : hideUnreleasedShows === 'off' ? false : undefined;
+    const parsedItemCount = Number(itemCount);
+    const normalizedItemCount = Number.isInteger(parsedItemCount) && parsedItemCount >= 1 && parsedItemCount <= 20
+      ? parsedItemCount
+      : undefined;
     setConfig(prev => {
       const updatedCatalogs = prev.catalogs.map(c =>
         c.id === catalog.id && c.type === catalog.type
           ? {
               ...c,
+              sort,
               cacheTTL: resolveCatalogTTL(cacheTTL, minCacheTTL),
               metadata: {
                 ...c.metadata,
+                itemCount: normalizedItemCount,
                 // Only include pageSize for trending (watchlists use local pagination)
                 ...(isTrending && { pageSize: Math.max(1, pageSize) || 50 }),
                 // Remove pageSize from watchlists if it exists
@@ -1023,6 +1037,21 @@ const SimklSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogCon
                 : 'Minimum 5 minutes to avoid excessive API calls'}
             />
           )}
+
+          <div className="space-y-2">
+            <Label>Sort By</Label>
+            <Select value={sort} onValueChange={setSort}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SIMKL_SORT_OPTIONS.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Total Catalogue Limit</Label>
+            <Input type="number" min={0} max={20} step={1} value={itemCount} onChange={event => setItemCount(event.target.value)} />
+            <p className="text-xs text-muted-foreground">0 means no limit. Maximum 20 items; the cap is applied after filtering and sorting.</p>
+          </div>
           
           {isTrending && (
             <div className="space-y-2">

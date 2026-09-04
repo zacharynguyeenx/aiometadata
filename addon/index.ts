@@ -4505,6 +4505,13 @@ addon.get("/stremio/:userUUID/catalog/:type/:id{/:extra}.json", async function (
   if (isDiscoverCatalogId(cleanId)) {
     applyDiscoverSignature(extraArgs, catalogConfig);
   }
+  // Simkl ordering and caps are applied after metadata enrichment, so they must
+  // participate in the catalogue response identity (random also changes daily).
+  else if (cleanId.startsWith('simkl.')) {
+    if (catalogConfig?.sort) extraArgs.simklSort = catalogConfig.sort;
+    if (catalogConfig?.metadata?.itemCount !== undefined) extraArgs.simklLimit = catalogConfig.metadata.itemCount;
+    if (catalogConfig?.sort === 'random') extraArgs.simklDay = new Date().toISOString().slice(0, 10);
+  }
   // Trakt uses: sort, sortDirection
   else if (cleanId.startsWith('trakt.')) {
     if (catalogConfig?.sort) extraArgs.sort = catalogConfig.sort;
@@ -4909,6 +4916,7 @@ addon.get("/stremio/:userUUID/catalog/:type/:id{/:extra}.json", async function (
       );
     } else {
       responseData = await readPage(catalogPage, legacySkip);
+       if (cleanId.startsWith('simkl.')) filtersAlreadyApplied = true;
     }
     }
     if (!filtersAlreadyApplied && responseData?.metas && Array.isArray(responseData.metas) && responseData.metas.length > 0) {
