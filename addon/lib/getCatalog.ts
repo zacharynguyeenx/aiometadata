@@ -91,7 +91,7 @@ async function getCatalog(type: string, language: string, page: number, id: stri
         || config.catalogs?.find(c => c.id === id);
       const awardResults = await getAwardCatalog(
         type,
-        page,
+        0,
         config,
         userUUID,
         includeVideos,

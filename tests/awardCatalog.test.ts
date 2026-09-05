@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AWARD_RULES, extractAwardIds } from '../addon/lib/awardRules';
+import { filterAndPaginateAwardMetas, paginateAwardMetas } from '../addon/lib/awardPagination';
 
 describe('award catalog extraction', () => {
   it('selects winners, applies historical category filters, and deduplicates IDs', () => {
@@ -27,5 +28,18 @@ describe('award catalog extraction', () => {
     };
 
     expect(extractAwardIds(snapshot, AWARD_RULES[0])).toEqual(['tt500']);
+  });
+
+  it('paginates after filtering by taking the complete source set first', () => {
+    const allWinners = [
+      { id: 'tt1', simkl_status: 'completed' },
+      { id: 'tt2', simkl_status: 'watching' },
+      { id: 'tt3', simkl_status: 'completed' },
+    ];
+    expect(filterAndPaginateAwardMetas(allWinners, meta => meta.simkl_status === 'completed', 0, 1))
+      .toEqual([{ id: 'tt1', simkl_status: 'completed' }]);
+    expect(filterAndPaginateAwardMetas(allWinners, meta => meta.simkl_status === 'completed', 1, 1))
+      .toEqual([{ id: 'tt3', simkl_status: 'completed' }]);
+    expect(paginateAwardMetas(allWinners, 2, 1)).toEqual([{ id: 'tt2', simkl_status: 'watching' }]);
   });
 });

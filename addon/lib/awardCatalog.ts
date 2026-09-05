@@ -7,6 +7,7 @@ import { getMeta } from './getMeta.js';
 import { mapWithLimit } from '../utils/concurrency.js';
 import type { UserConfig } from '../types/index.js';
 import { AWARD_RULES, extractAwardIds, type AwardRule } from './awardRules.js';
+import { paginateAwardMetas } from './awardPagination.js';
 
 const logger = consola.withTag('Awards');
 const DATASET_BASE = 'https://raw.githubusercontent.com/Kometa-Team/IMDb-Awards/master';
@@ -88,5 +89,5 @@ export async function getAwardCatalog(
     const right = Date.parse(b.released || '') || 0;
     return right - left;
   });
-  return sorted.slice(Math.max(0, (page - 1) * pageSize), page * pageSize);
+  return page <= 0 ? sorted : paginateAwardMetas(sorted, page, pageSize);
 }

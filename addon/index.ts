@@ -11,6 +11,7 @@ const addon = express();
 
 const { getCatalog } = require("./lib/getCatalog");
 const { applyCatalogFilters, catalogFiltersActive } = require("./utils/catalogFilters");
+const { filterAndPaginateAwardMetas } = require('./lib/awardPagination');
 const { cursorKey, resolveStartPage, writeCursor, fillFilteredPage } = require("./lib/catalogPagination");
 const anilist = require("./lib/anilist");
 const { getSearch } = require("./lib/getSearch");
@@ -4813,12 +4814,19 @@ addon.get("/stremio/:userUUID/catalog/:type/:id{/:extra}.json", async function (
       const result = await getCatalog(actualType, language, catalogPage, cleanId, genreName, config, userUUID, false, skipValue);
       responseData = { metas: result.metas || [] };
       filtersAlreadyApplied = true;
-      } else if (cleanId.startsWith('awards.') || cleanId.startsWith('merged.')) {
+      } else if (cleanId.startsWith('awards.')) {
+       const { genre: genreName } = extraArgs;
+       const result = await getCatalog(actualType, language, 1, cleanId, genreName, config, userUUID, false, 0);
+       const filtered = await applyCatalogFilters(result.metas || [], { type: actualType, config, catalogConfig, cleanId });
+       const offset = extraArgs.skip ? Math.max(0, parseInt(extraArgs.skip, 10)) : 0;
+       responseData = { metas: filterAndPaginateAwardMetas(result.metas || [], meta => filtered.includes(meta), offset, catalogPageSize) };
+       filtersAlreadyApplied = true;
+      } else if (cleanId.startsWith('merged.')) {
       const { genre: genreName } = extraArgs;
       const skipValue = extraArgs.skip !== undefined ? parseInt(extraArgs.skip) : 0;
       const result = await getCatalog(actualType, language, catalogPage, cleanId, genreName, config, userUUID, false, skipValue);
       responseData = { metas: result.metas || [] };
-      filtersAlreadyApplied = true;
+       filtersAlreadyApplied = true;
       } else {
       const { genre: genreName, type_filter } = extraArgs;
       const runCatalogPage = async (page, skipOverride) => {
