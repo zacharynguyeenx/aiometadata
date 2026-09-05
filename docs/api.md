@@ -15,6 +15,10 @@ Most endpoints don't require authentication. However, some features might requir
 
 ## Endpoints
 
+### Award Catalogs
+
+The configuration UI can add an opt-in `awards.imdb.<instance>` movie catalog. It reads winner-only Cannes Golden Palm, Golden Globe Best Picture/Director, and Oscar Best Picture/Director rules from Kometa's IMDb-Awards dataset. Rule selections are stored with the catalog instance and can be edited later. The server caches each event snapshot locally and falls back to the last successful snapshot when refreshes fail.
+
 ### Manifest
 ```http
 GET /manifest.json
@@ -176,4 +180,4 @@ For development and testing, you can use the following tools:
 
 - [Stremio Addon SDK Documentation](https://github.com/Stremio/stremio-addon-sdk)
 - [TMDB API Documentation](https://developers.themoviedb.org/3)
-- [Fanart.tv API Documentation](https://fanarttv.docs.apiary.io/) 
+- [Fanart.tv API Documentation](https://fanarttv.docs.apiary.io/)

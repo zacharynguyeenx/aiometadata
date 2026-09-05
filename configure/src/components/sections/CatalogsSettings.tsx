@@ -17,6 +17,7 @@ import { CustomManifestIntegration } from './CustomManifestIntegration';
 import { StreamingTop10Integration } from './StreamingTop10Integration';
 import { AIOMetadataIntegration } from './AIOMetadataIntegration';
 import { QuickAddDialog } from '@/components/QuickAddDialog';
+import { AwardCatalogDialog } from '@/components/AwardCatalogDialog';
 import { AICatalogDialog } from '@/components/AICatalogDialog';
 import { CacheTTLField } from '@/components/CacheTTLField';
 import { useConfig } from '@/contexts/ConfigContext';
@@ -3018,11 +3019,12 @@ function resolveSettingsDialog(catalog: CatalogConfig & { source?: string }) {
   }
 }
 
-const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, onDuplicateDiscover }: {
+const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, onDuplicateDiscover, onEditAwards }: {
   catalog: CatalogConfig & { source?: string };
   onEditDiscover?: (catalog: CatalogConfig) => void;
   onCustomize?: (catalog: CatalogConfig) => void;
   onDuplicateDiscover?: (catalog: CatalogConfig) => void;
+  onEditAwards?: (catalog: CatalogConfig) => void;
 }) => {
   const { setConfig, config } = useConfig();
   const { toggleSelection, isSelected, selectionCount } = useSelection();
@@ -3835,6 +3837,17 @@ const SortableCatalogItem = React.memo(({ catalog, onEditDiscover, onCustomize, 
 
           <Tooltip>
             <TooltipTrigger asChild>
+              {catalog.source === 'awards' && onEditAwards ? (
+                <Button variant="ghost" size="icon" onClick={() => onEditAwards(catalog)} aria-label="Edit award rules" className="active:scale-90 transition-transform">
+                  <Trophy className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                </Button>
+              ) : null}
+            </TooltipTrigger>
+            <TooltipContent>Edit award rules</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={handleDelete} aria-label="Delete Catalog" className="active:scale-90 transition-transform">
                 <Trash2 className="h-5 w-5 text-red-500" />
               </Button>
@@ -4054,6 +4067,8 @@ function CatalogsSettingsContent({
   const [isAIOMetadataOpen, setIsAIOMetadataOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isAICatalogOpen, setIsAICatalogOpen] = useState(false);
+  const [isAwardsOpen, setIsAwardsOpen] = useState(false);
+  const [editingAwardCatalog, setEditingAwardCatalog] = useState<CatalogConfig | undefined>();
   const [streamingDialogOpen, setStreamingDialogOpen] = useState(false);
   const [tempSelectedProviders, setTempSelectedProviders] = useState<string[]>([]);
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
@@ -4336,6 +4351,7 @@ function CatalogsSettingsContent({
         onEditDiscover={handleEditDiscover}
         onCustomize={DEFAULT_CATALOG_TEMPLATES[catalog.id] ? handleCustomize : undefined}
         onDuplicateDiscover={handleDuplicateDiscover}
+        onEditAwards={catalog.source === 'awards' ? (awardCatalog) => { setEditingAwardCatalog(awardCatalog); setIsAwardsOpen(true); } : undefined}
       />
     )
   );
@@ -5234,6 +5250,21 @@ function CatalogsSettingsContent({
                     <Button
                       variant="ghost"
                       size="icon"
+                      onClick={() => { setEditingAwardCatalog(undefined); setIsAwardsOpen(true); }}
+                      aria-label="Awards"
+                      className="h-9 w-9"
+                    >
+                      <Trophy className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Awards</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setIsAIOMetadataOpen(true)}
                       aria-label="AIOMetadata Catalogs"
                       className="h-9 w-9"
@@ -5684,6 +5715,13 @@ function CatalogsSettingsContent({
       <QuickAddDialog
         isOpen={isQuickAddOpen}
         onClose={() => setIsQuickAddOpen(false)}
+      />
+      <AwardCatalogDialog
+        isOpen={isAwardsOpen}
+        onClose={() => { setIsAwardsOpen(false); setEditingAwardCatalog(undefined); }}
+        catalogs={config.catalogs}
+        setCatalogs={(updater) => setConfig(prev => ({ ...prev, catalogs: updater(prev.catalogs) }))}
+        editingCatalog={editingAwardCatalog}
       />
       <AICatalogDialog
         isOpen={isAICatalogOpen}

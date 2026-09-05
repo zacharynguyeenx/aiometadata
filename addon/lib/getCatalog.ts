@@ -35,6 +35,7 @@ const logger = consola.withTag('Catalog');
 import { cacheWrapMetaSmart } from './getCache.js';
 import { UserConfig } from '../types/index.js';
 import { applySimklCatalogOptions } from '../utils/simklCatalogOptions.js';
+import { getAwardCatalog } from './awardCatalog.js';
 
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 const TVDB_IMAGE_BASE = 'https://artworks.thetvdb.com';
@@ -84,6 +85,19 @@ async function getCatalog(type: string, language: string, page: number, id: stri
       logger.debug(`Routing to Trakt catalog handler for id: ${id}`);
       const traktResults = await getTraktCatalog(type, id, genre, page, language, config, userUUID, includeVideos);
       return { metas: traktResults };
+    }
+    else if (id.startsWith('awards.')) {
+      const catalogConfig = config.catalogs?.find(c => c.id === id && c.type === type)
+        || config.catalogs?.find(c => c.id === id);
+      const awardResults = await getAwardCatalog(
+        type,
+        page,
+        config,
+        userUUID,
+        includeVideos,
+        catalogConfig?.metadata?.awardRuleIds || [],
+      );
+      return { metas: awardResults };
     }
     else if (id.startsWith('mal.discover.')) {
       logger.debug(`Routing to MAL discover catalog handler for id: ${id}`);

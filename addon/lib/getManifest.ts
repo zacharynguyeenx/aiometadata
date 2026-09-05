@@ -1135,6 +1135,9 @@ async function getManifest(config: any, opts: { tags?: string[] } = {}): Promise
       if (isPublicMetaDB(userCatalog.id)) {
         return true;
       }
+      if (userCatalog.id.startsWith('awards.')) {
+        return userCatalog.type === 'movie';
+      }
       if (!catalogDef) {
         logger.debug(`Catalog ${userCatalog.id} failed filter: no catalog definition`);
         return false;
@@ -1186,6 +1189,16 @@ async function getManifest(config: any, opts: { tags?: string[] } = {}): Promise
           logger.debug(`Processing PublicMetaDB catalog: ${userCatalog.id}`);
           const result = createPublicMetaDBCatalog(userCatalog, showPrefix, prefixName);
           return result;
+      }
+      if (userCatalog.id.startsWith('awards.')) {
+        return {
+          id: userCatalog.id,
+          type: 'movie',
+          name: `${showPrefix ? `${prefixName} - ` : ''}${userCatalog.name}`,
+          pageSize: parseInt(process.env.CATALOG_LIST_ITEMS_SIZE || '20', 10),
+          extra: [{ name: 'skip' }],
+          showInHome: userCatalog.showInHome,
+        };
       }
       if (userCatalog.id.startsWith('tmdb.list.')) {
           logger.debug(`Processing TMDB List catalog: ${userCatalog.id}`);
