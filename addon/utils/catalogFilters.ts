@@ -73,6 +73,8 @@ function catalogFiltersActive({ config, catalogConfig, cleanId }: Omit<CatalogFi
     }
   }
 
+  if (catalogConfig?.metadata?.simklStatusFilter?.length && config.apiKeys?.simklTokenId) return true;
+
   return Boolean(config.exclusionKeywords || config.regexExclusionFilter || config.exclusionGenres);
 }
 
@@ -222,6 +224,22 @@ async function applyCatalogFilters(metas: any[], { type, config, catalogConfig, 
   }
 
   if (metas.length > 0 && config.apiKeys?.simklTokenId) {
+    const selectedStatuses = require('./simklStatusFilter.js').normalizeSimklStatusFilter(catalogConfig?.metadata?.simklStatusFilter);
+    if (selectedStatuses) {
+      try {
+        const { getSimklStatusIndex } = require('./simklUtils');
+        const { filterMetasBySimklStatus } = require('./simklStatusFilter.js');
+        const result = await getSimklStatusIndex(config);
+        const filtered = filterMetasBySimklStatus(metas, selectedStatuses, result.index);
+        logger.info(`[Simkl] Status filter ${catalogConfig?.id || cleanId}: matched=${filtered.matched}, unmatched=${filtered.unmatched}, excluded=${filtered.unmatched}, cacheHit=${result.cacheHit}, providerFailure=${result.providerFailure}`);
+        metas = filtered.metas;
+      } catch (err: any) {
+        logger.warn(`Simkl status filter error: ${err.message}`);
+        metas = [];
+      }
+    }
+
+    if (metas.length > 0) {
     const globalHide = !!config.hideWatchedSimkl;
     const catalogHide = catalogConfig?.metadata?.hideWatchedSimkl;
     const shouldHide = catalogHide !== undefined ? catalogHide : globalHide;
@@ -270,6 +288,7 @@ async function applyCatalogFilters(metas: any[], { type, config, catalogConfig, 
       } catch (err: any) {
         logger.warn(`Hide Simkl watched filter error: ${err.message}`);
       }
+    }
     }
   }
 

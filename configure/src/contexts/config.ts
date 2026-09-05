@@ -100,6 +100,7 @@ export interface CatalogConfig {
     pageSize?: number; // Results per page for Simkl trending and watchlist catalogs (default: 50)
     itemCount?: number; // Optional total catalogue cap for Simkl (1-20)
     status?: 'watching' | 'plantowatch' | 'hold' | 'completed' | 'dropped'; // Status for Simkl watchlist catalogs
+    simklStatusFilter?: Array<'watching' | 'plantowatch' | 'hold' | 'completed' | 'dropped'>;
     /** Source references for merged catalogs (id starts with 'merged.') */
     mergedSources?: Array<{
       catalogId: string;       // source catalog id, e.g. "tmdb.top"

@@ -2963,7 +2963,8 @@ async function getSimklCatalog(
     const simklSort = catalogConfig?.sort || 'default';
     const simklLimit = catalogConfig?.metadata?.itemCount;
     const simklPageSize = parseInt(process.env.CATALOG_LIST_ITEMS_SIZE || '20', 10);
-    const simklOptionsActive = simklSort !== 'default' || simklLimit !== undefined;
+    const simklStatusFilter = catalogConfig?.metadata?.simklStatusFilter;
+    const simklOptionsActive = simklSort !== 'default' || simklLimit !== undefined || (Array.isArray(simklStatusFilter) && simklStatusFilter.length > 0);
     
     // For watchlists, use default pageSize (Simkl doesn't support pagination, we do local pagination)
     // For trending, use configured pageSize

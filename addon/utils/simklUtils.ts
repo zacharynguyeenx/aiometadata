@@ -4,6 +4,7 @@ import { cacheWrapMetaSmart, cacheWrapGlobal } from "../lib/getCache.js";
 import { UserConfig } from "../types/index.js";
 import * as Utils from "./parseProps.js";
 import { progress } from "framer-motion";
+import { buildSimklStatusIndex, SIMKL_LIST_STATUSES, SimklStatusIndex } from './simklStatusFilter.js';
 const consola = require('consola');
 const { Agent } = require('undici');
 const crypto = require('crypto');
@@ -19,7 +20,6 @@ const SIMKL_CLIENT_ID = process.env.SIMKL_CLIENT_ID || '';
 const SIMKL_TRENDING_TTL = 12 * 60 * 60; // 12 hours
 const SIMKL_WATCHLIST_TTL = 24 * 60 * 60; // Cache in Redis for 24h, relies on activity check to invalidate
 const SIMKL_ACTIVITIES_TTL_DEFAULT = 30 * 60; // Simkl asks callers to throttle sync checks to once per 15-30 min
-const SIMKL_LIST_STATUSES = ['plantowatch', 'watching', 'completed', 'hold', 'dropped'];
 
 function getSimklActivitiesTtl(): number {
   const parsed = parseInt(process.env.SIMKL_ACTIVITIES_TTL || '', 10);
@@ -515,7 +515,7 @@ async function fetchSimklWatchlistItems(
       if (cachedList) {
         itemsToReturn = cachedList;
       } else {
-        return { items: [] };
+        return { items: [], failed: true } as any;
       }
     } else {
       // We have API connection
@@ -625,7 +625,7 @@ async function fetchSimklWatchlistItems(
 
   } catch (error: any) {
     logger.error(`Error fetching Simkl watchlist items: ${error.message}`);
-    return { items: [] };
+    return { items: [], failed: true } as any;
   }
 }
 
@@ -1001,6 +1001,32 @@ async function getSimklWatchedIds(config: any): Promise<SimklWatchedIds | null> 
   } catch (err: any) {
     logger.warn(`[Watched IDs] Error fetching Simkl watched IDs: ${err.message}`);
     return null;
+  }
+}
+
+let lastKnownSimklStatusIndex: { tokenId?: string; index: SimklStatusIndex } | null = null;
+
+async function getSimklStatusIndex(config: UserConfig): Promise<{ index: SimklStatusIndex; providerFailure: boolean; cacheHit: boolean }> {
+  const tokenId = config?.apiKeys?.simklTokenId;
+  const token = await getSimklToken(config?.apiKeys?.simklTokenId);
+  const accessToken = token?.access_token;
+  const cachedIndex = lastKnownSimklStatusIndex?.tokenId === tokenId ? lastKnownSimklStatusIndex.index : new Map();
+  if (!accessToken) return { index: cachedIndex, providerFailure: true, cacheHit: cachedIndex.size > 0 };
+
+  try {
+    const entries = await Promise.all(SIMKL_LIST_STATUSES.map(async status => {
+      const lists = await Promise.all((['movies', 'shows', 'anime'] as const).map(type =>
+        fetchSimklWatchlistItems(accessToken, type, status)
+      ));
+      if (lists.some(result => (result as any).failed)) throw new Error(`Simkl ${status} status fetch failed`);
+      return [status, lists.flatMap(result => result.items)] as const;
+    }));
+    const index = buildSimklStatusIndex(Object.fromEntries(entries));
+    lastKnownSimklStatusIndex = { tokenId, index };
+    return { index, providerFailure: false, cacheHit: false };
+  } catch (error: any) {
+    logger.warn(`[Simkl] Status index failed: ${error.message}`);
+    return { index: cachedIndex, providerFailure: true, cacheHit: cachedIndex.size > 0 };
   }
 }
 
@@ -1783,6 +1809,7 @@ export {
   getSimklRatings,
   getSimklToken,
   getSimklWatchedIds,
+  getSimklStatusIndex,
   getSimklActivityFingerprint,
   fetchSimklTrendingItems,
   fetchSimklRecipeItems,

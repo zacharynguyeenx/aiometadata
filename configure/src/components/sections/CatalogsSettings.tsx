@@ -291,6 +291,14 @@ const SIMKL_SORT_OPTIONS = [
   { value: 'random', label: 'Random (Daily)' },
 ] as const;
 
+const SIMKL_STATUS_OPTIONS = [
+  { value: 'plantowatch', label: 'Plan to Watch' },
+  { value: 'watching', label: 'Watching' },
+  { value: 'hold', label: 'On Hold' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'dropped', label: 'Dropped' },
+] as const;
+
 const ANILIST_SORT_OPTIONS: { value: AniListSortOption; label: string }[] = [
   { value: 'ADDED_TIME', label: 'Added Time' },
   { value: 'UPDATED_TIME', label: 'Updated Time' },
@@ -962,6 +970,7 @@ const SimklSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogCon
   const [hideWatchedAnilist, setHideWatchedAnilist] = useState<string>(catalog.metadata?.hideWatchedAnilist === true ? 'on' : catalog.metadata?.hideWatchedAnilist === false ? 'off' : 'global');
   const [hideWatchedMdblist, setHideWatchedMdblist] = useState<string>(catalog.metadata?.hideWatchedMdblist === true ? 'on' : catalog.metadata?.hideWatchedMdblist === false ? 'off' : 'global');
   const [hideWatchedSimkl, setHideWatchedSimkl] = useState<string>(catalog.metadata?.hideWatchedSimkl === true ? 'on' : catalog.metadata?.hideWatchedSimkl === false ? 'off' : 'global');
+  const [simklStatusFilter, setSimklStatusFilter] = useState<NonNullable<CatalogConfig['metadata']>['simklStatusFilter']>(catalog.metadata?.simklStatusFilter || []);
   const [hideUnreleasedDigital, setHideUnreleasedDigital] = useState<string>(catalog.metadata?.hideUnreleasedDigital === true ? 'on' : catalog.metadata?.hideUnreleasedDigital === false ? 'off' : 'global');
   const [hideUnreleasedShows, setHideUnreleasedShows] = useState<string>(catalog.metadata?.hideUnreleasedShows === true ? 'on' : catalog.metadata?.hideUnreleasedShows === false ? 'off' : 'global');
   const [airingSoonDays, setAiringSoonDays] = useState<number>(() => {
@@ -1007,6 +1016,7 @@ const SimklSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogCon
                 hideWatchedAnilist: hideAnilistValue,
                 hideWatchedMdblist: hideMdblistValue,
                 hideWatchedSimkl: hideSimklValue,
+                simklStatusFilter: simklStatusFilter.length ? simklStatusFilter : undefined,
                 hideUnreleasedDigital: hideUnreleasedDigitalValue,
                 hideUnreleasedShows: hideUnreleasedShowsValue
               }
@@ -1189,6 +1199,26 @@ const SimklSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogCon
                   <SelectItem value="off">Always Off</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          {config.apiKeys?.simklTokenId && (
+            <div className="space-y-2">
+              <Label>Simkl status filter</Label>
+              <p className="text-xs text-muted-foreground">Include items whose current Simkl status matches any selected value.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {SIMKL_STATUS_OPTIONS.map(option => (
+                  <label key={option.value} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={simklStatusFilter.includes(option.value)}
+                      onChange={event => setSimklStatusFilter(current => event.target.checked
+                        ? [...current, option.value]
+                        : current.filter(value => value !== option.value))}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
             </div>
           )}
           <div className="space-y-2">
@@ -2461,6 +2491,7 @@ const GenericSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogC
   const [hideWatchedAnilist, setHideWatchedAnilist] = useState<string>(catalog.metadata?.hideWatchedAnilist === true ? 'on' : catalog.metadata?.hideWatchedAnilist === false ? 'off' : 'global');
   const [hideWatchedMdblist, setHideWatchedMdblist] = useState<string>(catalog.metadata?.hideWatchedMdblist === true ? 'on' : catalog.metadata?.hideWatchedMdblist === false ? 'off' : 'global');
   const [hideWatchedSimkl, setHideWatchedSimkl] = useState<string>(catalog.metadata?.hideWatchedSimkl === true ? 'on' : catalog.metadata?.hideWatchedSimkl === false ? 'off' : 'global');
+  const [simklStatusFilter, setSimklStatusFilter] = useState<NonNullable<CatalogConfig['metadata']>['simklStatusFilter']>(catalog.metadata?.simklStatusFilter || []);
   const [hideUnreleasedDigital, setHideUnreleasedDigital] = useState<string>(catalog.metadata?.hideUnreleasedDigital === true ? 'on' : catalog.metadata?.hideUnreleasedDigital === false ? 'off' : 'global');
   const [hideUnreleasedShows, setHideUnreleasedShows] = useState<string>(catalog.metadata?.hideUnreleasedShows === true ? 'on' : catalog.metadata?.hideUnreleasedShows === false ? 'off' : 'global');
 
@@ -2476,7 +2507,7 @@ const GenericSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogC
       ...prev,
       catalogs: prev.catalogs.map(c =>
         catalogIdentityKey(c) === catalogIdentityKey(catalog)
-          ? { ...c, metadata: { ...c.metadata, hideWatchedTrakt: hideTraktValue, hideWatchedAnilist: hideAnilistValue, hideWatchedMdblist: hideMdblistValue, hideWatchedSimkl: hideSimklValue, hideUnreleasedDigital: hideUnreleasedDigitalValue, hideUnreleasedShows: hideUnreleasedShowsValue } }
+          ? { ...c, metadata: { ...c.metadata, hideWatchedTrakt: hideTraktValue, hideWatchedAnilist: hideAnilistValue, hideWatchedMdblist: hideMdblistValue, hideWatchedSimkl: hideSimklValue, simklStatusFilter: simklStatusFilter.length ? simklStatusFilter : undefined, hideUnreleasedDigital: hideUnreleasedDigitalValue, hideUnreleasedShows: hideUnreleasedShowsValue } }
           : c
       )
     }));
@@ -2548,6 +2579,20 @@ const GenericSettingsDialog = ({ catalog, isOpen, onClose }: { catalog: CatalogC
                   <SelectItem value="off">Always Off</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          {config.apiKeys?.simklTokenId && (
+            <div className="space-y-2">
+              <Label>Simkl status filter</Label>
+              <p className="text-xs text-muted-foreground">Include items whose current Simkl status matches any selected value.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {SIMKL_STATUS_OPTIONS.map(option => (
+                  <label key={option.value} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={simklStatusFilter.includes(option.value)} onChange={event => setSimklStatusFilter(current => event.target.checked ? [...current, option.value] : current.filter(value => value !== option.value))} />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
             </div>
           )}
           <div className="space-y-2">

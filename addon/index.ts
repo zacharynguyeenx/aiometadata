@@ -4918,7 +4918,7 @@ addon.get("/stremio/:userUUID/catalog/:type/:id{/:extra}.json", async function (
     } else {
       responseData = await readPage(catalogPage, legacySkip);
        if (cleanId.startsWith('simkl.') &&
-           (catalogConfig?.sort && catalogConfig.sort !== 'default' || catalogConfig?.metadata?.itemCount !== undefined)) {
+           (catalogConfig?.sort && catalogConfig.sort !== 'default' || catalogConfig?.metadata?.itemCount !== undefined || catalogConfig?.metadata?.simklStatusFilter?.length)) {
          filtersAlreadyApplied = true;
        }
     }

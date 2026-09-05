@@ -88,7 +88,7 @@ export interface Catalog {
   source?: string;
   randomizePerPage?: boolean;
   sort?: string;
-  metadata?: { itemCount?: number; [key: string]: any };
+  metadata?: { itemCount?: number; simklStatusFilter?: string[]; [key: string]: any };
   [key: string]: any;
 }
 
