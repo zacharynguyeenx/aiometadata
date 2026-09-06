@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   buildSimklStatusIndex,
+  canApplySimklStatusFilter,
   filterMetasBySimklStatus,
   normalizeSimklStatusFilter,
 } from '../addon/utils/simklStatusFilter';
@@ -9,6 +11,12 @@ describe('Simkl status filters', () => {
   it('normalizes, deduplicates, and drops unsupported statuses', () => {
     expect(normalizeSimklStatusFilter(['watching', 'watching', 'invalid', 1])).toEqual(['watching']);
     expect(normalizeSimklStatusFilter([])).toBeUndefined();
+  });
+
+  it('fails open when Simkl is unavailable without a cached index', () => {
+    expect(canApplySimklStatusFilter(true, false)).toBe(false);
+    expect(canApplySimklStatusFilter(true, true)).toBe(true);
+    expect(canApplySimklStatusFilter(false, false)).toBe(true);
   });
 
   it('matches any selected status through shared identities', () => {
@@ -27,7 +35,7 @@ describe('Simkl status filters', () => {
     expect(result.unmatched).toBe(1);
   });
 
-  it('supports anime mapped identities', () => {
+  it('matches anime identities directly', () => {
     const index = buildSimklStatusIndex({ watching: [{ show: { ids: { mal: 7 } } }] });
     expect(filterMetasBySimklStatus([{ id: 'mal:7' }], ['watching'], index).metas).toHaveLength(1);
   });

@@ -61,6 +61,10 @@ export function simklStatusIdentityKeys(meta: any): string[] {
 
 export type SimklStatusIndex = Map<string, SimklListStatus>;
 
+export function canApplySimklStatusFilter(providerFailure: boolean, cacheHit: boolean): boolean {
+  return !providerFailure || cacheHit;
+}
+
 export function buildSimklStatusIndex(itemsByStatus: Partial<Record<SimklListStatus, any[]>>): SimklStatusIndex {
   const index: SimklStatusIndex = new Map();
   for (const status of SIMKL_LIST_STATUSES) {

@@ -13,6 +13,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'html'],
+      // Legacy mapper is loaded as a dynamic dependency by Simkl filter tests.
+      exclude: ['addon/lib/id-mapper.js'],
       thresholds: {
         lines: 34.89,
         statements: 33.23,

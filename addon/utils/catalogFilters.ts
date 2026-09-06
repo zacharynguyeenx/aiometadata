@@ -230,12 +230,16 @@ async function applyCatalogFilters(metas: any[], { type, config, catalogConfig, 
         const { getSimklStatusIndex } = require('./simklUtils');
         const { filterMetasBySimklStatus } = require('./simklStatusFilter.js');
         const result = await getSimklStatusIndex(config);
-        const filtered = filterMetasBySimklStatus(metas, selectedStatuses, result.index);
-        logger.info(`[Simkl] Status filter ${catalogConfig?.id || cleanId}: matched=${filtered.matched}, unmatched=${filtered.unmatched}, excluded=${filtered.unmatched}, cacheHit=${result.cacheHit}, providerFailure=${result.providerFailure}`);
-        metas = filtered.metas;
+        const { canApplySimklStatusFilter } = require('./simklStatusFilter.js');
+        if (!canApplySimklStatusFilter(result.providerFailure, result.cacheHit)) {
+          logger.warn(`[Simkl] Status filter skipped because the provider is unavailable: ${catalogConfig?.id || cleanId}`);
+        } else {
+          const filtered = filterMetasBySimklStatus(metas, selectedStatuses, result.index);
+          logger.info(`[Simkl] Status filter ${catalogConfig?.id || cleanId}: matched=${filtered.matched}, unmatched=${filtered.unmatched}, excluded=${filtered.unmatched}, cacheHit=${result.cacheHit}, providerFailure=${result.providerFailure}`);
+          metas = filtered.metas;
+        }
       } catch (err: any) {
         logger.warn(`Simkl status filter error: ${err.message}`);
-        metas = [];
       }
     }
 
