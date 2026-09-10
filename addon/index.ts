@@ -11,7 +11,7 @@ const addon = express();
 
 const { getCatalog } = require("./lib/getCatalog");
 const { applyCatalogFilters, catalogFiltersActive } = require("./utils/catalogFilters");
-const { filterAndPaginateAwardMetas } = require('./lib/awardPagination');
+const { applyAwardCatalogSort, normalizeAwardCatalogSort } = require('./utils/awardCatalogOptions');
 const { cursorKey, resolveStartPage, writeCursor, fillFilteredPage } = require("./lib/catalogPagination");
 const anilist = require("./lib/anilist");
 const { getSearch } = require("./lib/getSearch");
@@ -4514,6 +4514,10 @@ addon.get("/stremio/:userUUID/catalog/:type/:id{/:extra}.json", async function (
     if (catalogConfig?.metadata?.itemCount !== undefined) extraArgs.simklLimit = catalogConfig.metadata.itemCount;
     if (catalogConfig?.sort === 'random') extraArgs.simklDay = new Date().toISOString().slice(0, 10);
   }
+  else if (cleanId.startsWith('awards.')) {
+    extraArgs.awardSort = normalizeAwardCatalogSort(catalogConfig?.sort);
+    if (extraArgs.awardSort === 'random') extraArgs.awardDay = new Date().toISOString().slice(0, 10);
+  }
   // Trakt uses: sort, sortDirection
   else if (cleanId.startsWith('trakt.')) {
     if (catalogConfig?.sort) extraArgs.sort = catalogConfig.sort;
@@ -4816,10 +4820,11 @@ addon.get("/stremio/:userUUID/catalog/:type/:id{/:extra}.json", async function (
       filtersAlreadyApplied = true;
       } else if (cleanId.startsWith('awards.')) {
        const { genre: genreName } = extraArgs;
-       const result = await getCatalog(actualType, language, 1, cleanId, genreName, config, userUUID, false, 0);
-       const filtered = await applyCatalogFilters(result.metas || [], { type: actualType, config, catalogConfig, cleanId });
-       const offset = extraArgs.skip ? Math.max(0, parseInt(extraArgs.skip, 10)) : 0;
-       responseData = { metas: filterAndPaginateAwardMetas(result.metas || [], meta => filtered.includes(meta), offset, catalogPageSize) };
+        const result = await getCatalog(actualType, language, 1, cleanId, genreName, config, userUUID, false, 0);
+        const filtered = await applyCatalogFilters(result.metas || [], { type: actualType, config, catalogConfig, cleanId });
+        const ordered = applyAwardCatalogSort(filtered, catalogConfig?.sort, userUUID, cleanId, extraArgs.awardDay);
+        const offset = extraArgs.skip ? Math.max(0, parseInt(extraArgs.skip, 10)) : 0;
+        responseData = { metas: ordered.slice(offset, offset + catalogPageSize) };
        filtersAlreadyApplied = true;
       } else if (cleanId.startsWith('merged.')) {
       const { genre: genreName } = extraArgs;

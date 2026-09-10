@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import { applyDeterministicCatalogOrder } from './deterministicCatalogOrder.js';
 
 const MAX_SIMKL_CATALOG_LIMIT = 20;
 
@@ -8,14 +8,6 @@ function validDateMs(value: unknown): number | null {
   if (!value) return null;
   const time = new Date(String(value)).getTime();
   return Number.isFinite(time) ? time : null;
-}
-
-function stableHash(value: string): string {
-  return crypto.createHash('sha256').update(value).digest('hex');
-}
-
-function itemIdentity(meta: any, index: number): string {
-  return String(meta?.id || meta?.imdb_id || meta?.name || `index:${index}`);
 }
 
 export function normalizeSimklCatalogLimit(value: unknown): number | undefined {
@@ -43,12 +35,7 @@ export function applySimklCatalogOptions(
       })
       .map(({ meta }) => meta);
   } else if (sort === 'random') {
-    const day = options.day || new Date().toISOString().slice(0, 10);
-    const seed = `${options.userUUID || ''}:${options.catalogId}:${day}`;
-    ordered = ordered
-      .map((meta, index) => ({ meta, index, key: stableHash(`${seed}:${itemIdentity(meta, index)}`) }))
-      .sort((a, b) => a.key.localeCompare(b.key) || a.index - b.index)
-      .map(({ meta }) => meta);
+    ordered = applyDeterministicCatalogOrder(ordered, options);
   }
 
   return limit === undefined ? ordered : ordered.slice(0, limit);

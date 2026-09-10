@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { CatalogConfig } from '@/contexts/config';
 
 export const AWARD_RULES = [
@@ -40,11 +41,13 @@ export function AwardCatalogDialog({ isOpen, onClose, catalogs, setCatalogs, edi
   const initialRules = editingCatalog?.metadata?.awardRuleIds || [];
   const [ruleIds, setRuleIds] = useState<string[]>(initialRules);
   const [name, setName] = useState(editingCatalog?.name || awardCatalogName(initialRules));
+  const [sort, setSort] = useState<'default' | 'random'>(editingCatalog?.sort === 'random' ? 'random' : 'default');
 
   const openChanged = (open: boolean) => {
     if (open) {
       setRuleIds(editingCatalog?.metadata?.awardRuleIds || []);
       setName(editingCatalog?.name || awardCatalogName(editingCatalog?.metadata?.awardRuleIds || []));
+      setSort(editingCatalog?.sort === 'random' ? 'random' : 'default');
     } else onClose();
   };
 
@@ -52,7 +55,7 @@ export function AwardCatalogDialog({ isOpen, onClose, catalogs, setCatalogs, edi
     if (ruleIds.length === 0 || !name.trim()) return;
     if (editingCatalog) {
       setCatalogs(current => current.map(c => c.instanceId === editingCatalog.instanceId && c.id === editingCatalog.id
-        ? { ...c, name: name.trim(), metadata: { ...c.metadata, awardRuleIds: ruleIds } }
+        ? { ...c, name: name.trim(), sort, metadata: { ...c.metadata, awardRuleIds: ruleIds } }
         : c));
     } else {
       const baseName = name.trim() || awardCatalogName(ruleIds);
@@ -87,6 +90,16 @@ export function AwardCatalogDialog({ isOpen, onClose, catalogs, setCatalogs, edi
             <Switch checked={ruleIds.includes(id)} onCheckedChange={checked => setRuleIds(current => checked ? [...current, id] : current.filter(value => value !== id))} />
           </label>)}
         </div>
+        {editingCatalog && <div className="space-y-2">
+          <Label htmlFor="award-catalog-sort">Sort order</Label>
+          <Select value={sort} onValueChange={value => setSort(value as 'default' | 'random')}>
+            <SelectTrigger id="award-catalog-sort"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Release date</SelectItem>
+              <SelectItem value="random">Random daily</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>}
       </div>
       <DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={save} disabled={!name.trim() || ruleIds.length === 0}>Save</Button></DialogFooter>
     </DialogContent>
