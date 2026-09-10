@@ -12,7 +12,8 @@ jobs:
     with:
       ref: ${{ github.sha }}
   build:
-    runs-on: ubuntu-latest
+    # A stuck Buildx invocation must not leave the workflow in progress forever.
+    timeout-minutes: 30
     needs: quality
     permissions:
       contents: write
@@ -20,11 +21,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - linux/amd64
-          - linux/arm64
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     env:
       REGISTRY: ghcr.io
+      BUILDKIT_PROGRESS: plain
 
     steps:
       - name: Checkout repository
@@ -78,9 +83,6 @@ jobs:
             }
           "
 
-      - name: Set up QEMU for multi-arch builds
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -123,6 +125,7 @@ jobs:
 
   merge:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: build
     permissions:
       contents: write
